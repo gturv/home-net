@@ -1,6 +1,6 @@
 import { Text, Field, Box } from "@chakra-ui/react"
 
-export default function TextBox({label, value, bold = false}) {
+export default function TextBox({label, value, bold = false, onClick = null}) {
   return (
     <Field.Root>
       <Field.Label>
@@ -22,6 +22,7 @@ export default function TextBox({label, value, bold = false}) {
         fontFamily="inherit"
         fontWeight={bold ? "bold" : "normal"}
         marginBottom={3}
+        onClick={onClick}
         _focusVisible={{
           borderColor: "colorPalette.500",
           boxShadow: "0 0 0 1px var(--chakra-colors-colorPalette-500)"

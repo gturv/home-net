@@ -187,7 +187,7 @@ function App() {
   const landTransferTax = calculateLandTransferTax(purchasePrice);
   
   // Calculate base cash needed for purchase
-  const baseCashNeeded = purchasePrice - downPayment - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0);
+  const baseCashNeeded = purchasePrice - netProceeds - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0);
   
   // If down payment equals purchase price (100% down), there might be excess proceeds
   const excessProceeds = (downPayment >= purchasePrice && netProceeds > purchasePrice) ? netProceeds - purchasePrice : 0;
@@ -213,10 +213,10 @@ function App() {
       <div className="column">
         <h2>Sale Details</h2>
         <DollarInput state={salePrice} stateSetter={setSalePrice} label="Sale Price" step={5000} />
+        <DollarInput state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />
         <NumInput state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />
         <TextBox label="Commission with HST" value={formatCurrency(commissionWithHST)} />
         <DollarInput state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Selling)" step={100} />
-        <DollarInput state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />
         {!mortgagePenaltyApplies ?
         <Check state={portingMortgage} stateSetter={setPortingMortgage} label="Porting Mortgage?" />
           : ""
@@ -228,7 +228,7 @@ function App() {
 
         {mortgagePenaltyApplies && mortgagePenaltyEntered && (
           <div>
-            <TextBox label="Mortgage Penalty Amount" value={formatCurrency(mortgagePenaltyAmount)} />
+            <TextBox onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty Amount" value={formatCurrency(mortgagePenaltyAmount)} />
           </div>
         )}
         
@@ -369,45 +369,50 @@ function App() {
         <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Purchase Details</h2>
         <div className="purchase-columns">
           <div className="column">
-            <DollarInput state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} />
-            <DollarInput state={downPaymentInput} stateSetter={handleDownPaymentChange} label="Down Payment ($)" step={10000} />
-            {downPayment > 0 && purchasePrice > 99999 && (
+            <DollarInput state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />
+            <DollarInput state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ($) ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} />
+{/*             {downPayment > 0 && purchasePrice > 99999 && (
               <TextBox label="Down Payment (%)" value={`${downPaymentPercent.toFixed(1)}%`} />
-            )}
-            {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
-              <div>
-                <TextBox label="CMHC Premium" value={formatCurrency(cmhcPremium)} />
-                <TextBox label="CMHC Tax Due on Closing" value={formatCurrency(cmhcTaxDueOnClosing)} />
-              </div>
-            )} 
+            )} */}
+
             {purchasePrice > 99999 && <TextBox label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage)} />}
             <NumInput state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />
-            {portingMortgage && <Text>Blended Rate: {blendedRate.toFixed(2)}%</Text>}
-            <NumInput state={ammortizationYears} stateSetter={setAmortizationYears} label="Ammortization (Years)" min={1} max={30} step={5} precision={0} />
+            {portingMortgage && <TextBox label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />}
+                        {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
+              <div>
+                <TextBox label="CMHC Premium" value={formatCurrency(cmhcPremium)} />
+              </div>
+            )} 
           </div>
 
           <div className="column">
-            <TextBox label="Mortgage Payment" value={`$${mortgagePaymentPurchase.toFixed(2)}`} />
-            <DollarInput state={propertyTax} stateSetter={setPropertyTax} label="Property Tax (Yearly)" step={100} />
+            {/* <TextBox label="Mortgage Payment" value={`$${mortgagePaymentPurchase.toFixed(2)}`} /> */}
+            <NumInput state={ammortizationYears} stateSetter={setAmortizationYears} label="Ammortization (Years)" min={1} max={30} step={5} precision={0} />
             <TextBox label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />
             <DollarInput state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buying)" step={100} />
             <DollarInput state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />
             <DollarInput state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} /> 
+            {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
+              <div>
+                <TextBox label="CMHC Tax Due on Closing" value={formatCurrency(cmhcTaxDueOnClosing)} />
+              </div>
+            )} 
             <Check state={homeInspection} stateSetter={setHomeInspection} label="Home Inspection?" />
           </div>
           
         </div>
-         <TextBox bold label={cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"} value={formatCurrency(Math.abs(cashNeeded))} />
+         <TextBox bold label={cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
       </div>
 
       <div className="column">
         <h2>Ongoing Costs</h2>
+        <DollarInput state={propertyTax} stateSetter={setPropertyTax} label="Property Tax (Yearly)" step={100} />
         <DollarInput state={condoFees} stateSetter={setCondoFees} label="Condo Fees (Monthly)" step={50} />
         <DollarInput state={utilities} stateSetter={setUtilities} label="Utilities (Monthly)" step={50} />
         <DollarInput state={insuranceYearly} stateSetter={setInsuranceYearly} label="Home Insurance (Yearly)" step={100} />
         <DollarInput state={rentalIncome} stateSetter={setRentalIncome} label="Rental Income (Monthly)" step={100} />
-        <TextBox label="Monthly Mortgage Payment" value={formatCurrency(mortgagePaymentPurchase)} />
-        <TextBox bold label="Monthly Costs" value={formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome)} />
+        <TextBox label="Monthly Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />
+        <TextBox bold label="Monthly Costs" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
       </div>
     </div>
 {/*     <div className="container" style={{ marginTop: '2rem' }}>
