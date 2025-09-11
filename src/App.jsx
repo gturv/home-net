@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import './App.css';
-import { Text } from '@chakra-ui/react'
-import { calculateLandTransferTax, calculateCMHC, formatCurrency, calculateMortgagePayment, calculateBlendRate } from './helpers';
+import { Text, Dialog, Button, VStack, HStack, RadioGroup } from '@chakra-ui/react'
+import { calculateLandTransferTax, calculateCMHC, formatCurrency, calculateMortgagePayment, calculateBlendRate, calculateThreeMonthsInterest, calculateMortgagePenaltyIRD } from './helpers';
 import DollarInput from './components/DollarInput.jsx';
 import NumInput from './components/NumInput.jsx';
 import TextBox from './components/TextBox.jsx';
@@ -52,6 +52,20 @@ function App() {
   const [insuranceYearly, setInsuranceYearly] = useState(1500);
   const [rentalIncome, setRentalIncome] = useState(0);
   const [ammortizationYears, setAmortizationYears] = useState(25);
+  const [mortgagePenaltyApplies, setMortgagePenaltyApplies] = useState(false);
+  const [mortgagePenaltyAmount, setMortgagePenaltyAmount] = useState(0);
+  const [mortgagePenaltyEntered, setMortgagePenaltyEntered] = useState(false);
+  
+  // Dialog states
+  const [penaltyDialogOpen, setPenaltyDialogOpen] = useState(false);
+  const [penaltyCalculationType, setPenaltyCalculationType] = useState('variable');
+  const [penaltyInputs, setPenaltyInputs] = useState({
+    currentBalance: mortgageRemaining,
+    currentRate: mortgageRateCurrent,
+    termRemaining: 0,
+    currentDiscountRate: 0,
+    currentPenaltyRate: 0
+  });
 
   // Create debounced setters
   const debouncedSetMortgageRemaining = useDebounce(setMortgageRemaining, 500);
@@ -72,6 +86,57 @@ function App() {
   const handleDownPaymentChange = (value) => {
     setDownPaymentInput(value);
     setDownPayment(value);
+  };
+
+  // Handle mortgage penalty checkbox
+  const handleMortgagePenaltyChange = (checked) => {
+    setMortgagePenaltyApplies(checked);
+    if (checked) {
+      // Set current values when opening dialog
+      setPenaltyInputs({
+        currentBalance: mortgageRemaining,
+        currentRate: mortgageRateCurrent,
+        termRemaining: 0,
+        currentDiscountRate: 0,
+        currentPenaltyRate: 0,
+        manualAmount: 0
+      });
+      setPenaltyDialogOpen(true);
+    } else {
+      setMortgagePenaltyAmount(0);
+      setMortgagePenaltyEntered(false);
+    }
+  };
+
+  // Handle penalty calculation
+  const handlePenaltyCalculation = () => {
+    let calculatedPenalty = 0;
+    
+    if (penaltyCalculationType === 'variable') {
+      calculatedPenalty = calculateThreeMonthsInterest(
+        penaltyInputs.currentBalance,
+        penaltyInputs.currentRate
+      );
+    } else if (penaltyCalculationType === 'fixed') {
+      calculatedPenalty = calculateMortgagePenaltyIRD(
+        penaltyInputs.currentBalance,
+        penaltyInputs.currentRate,
+        penaltyInputs.currentDiscountRate, // Current market rate
+        penaltyInputs.termRemaining // Months remaining
+      );
+    } else {
+      calculatedPenalty = penaltyInputs.manualAmount || 0;
+    }
+    
+    setMortgagePenaltyAmount(calculatedPenalty);
+    setMortgagePenaltyEntered(true);
+    setPenaltyDialogOpen(false);
+  };
+
+  // Handle dialog close
+  const handleDialogClose = () => {
+    setPenaltyDialogOpen(false);
+    setMortgagePenaltyApplies(false);
   };
 
   // Set down payment to net proceeds when mortgage remaining changes
@@ -114,7 +179,7 @@ function App() {
 
 
   const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
-  const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining
+  const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount
   const mortgageNew = purchasePrice - downPayment
   const downPaymentPercent = (downPayment / purchasePrice) * 100;
   const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
@@ -122,7 +187,7 @@ function App() {
   const landTransferTax = calculateLandTransferTax(purchasePrice);
   
   // Calculate base cash needed for purchase
-  const baseCashNeeded = purchasePrice - downPayment - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + (homeInspection ? 565 : 0);
+  const baseCashNeeded = purchasePrice - downPayment - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0);
   
   // If down payment equals purchase price (100% down), there might be excess proceeds
   const excessProceeds = (downPayment >= purchasePrice && netProceeds > purchasePrice) ? netProceeds - purchasePrice : 0;
@@ -152,10 +217,151 @@ function App() {
         <TextBox label="Commission with HST" value={formatCurrency(commissionWithHST)} />
         <DollarInput state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Selling)" step={100} />
         <DollarInput state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />
+        {!mortgagePenaltyApplies ?
         <Check state={portingMortgage} stateSetter={setPortingMortgage} label="Porting Mortgage?" />
+          : ""
+      }
         { portingMortgage && 
           <NumInput state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Mortgage Rate (%)" min={0} max={10} step={0.1} precision={2} />
         }
+          <Check state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty?" />
+
+        {mortgagePenaltyApplies && mortgagePenaltyEntered && (
+          <div>
+            <TextBox label="Mortgage Penalty Amount" value={formatCurrency(mortgagePenaltyAmount)} />
+          </div>
+        )}
+        
+        {/* Mortgage Penalty Dialog */}
+        <Dialog.Root open={penaltyDialogOpen} onOpenChange={setPenaltyDialogOpen}>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content maxW="md">
+              <Dialog.CloseTrigger onClick={handleDialogClose} />
+              <Dialog.Header>
+                <Dialog.Title>Calculate Mortgage Penalty</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <VStack spacing={4} align="stretch">
+                  <Text fontWeight="bold">Select calculation method:</Text>
+                  <VStack align="stretch" spacing={3}>
+                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('variable')}>
+                      <input 
+                        type="radio" 
+                        name="penaltyType" 
+                        value="variable" 
+                        checked={penaltyCalculationType === 'variable'}
+                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                      />
+                      <Text>Variable Rate (3 months interest)</Text>
+                    </HStack>
+                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('fixed')}>
+                      <input 
+                        type="radio" 
+                        name="penaltyType" 
+                        value="fixed" 
+                        checked={penaltyCalculationType === 'fixed'}
+                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                      />
+                      <Text>Fixed Rate (Interest Rate Differential)</Text>
+                    </HStack>
+                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('manual')}>
+                      <input 
+                        type="radio" 
+                        name="penaltyType" 
+                        value="manual" 
+                        checked={penaltyCalculationType === 'manual'}
+                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                      />
+                      <Text>Enter manually</Text>
+                    </HStack>
+                  </VStack>
+
+                  {penaltyCalculationType === 'variable' && (
+                    <VStack spacing={3} align="stretch">
+                      <DollarInput 
+                        state={penaltyInputs.currentBalance} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
+                        label="Current Mortgage Balance" 
+                        step={1000} 
+                      />
+                      <NumInput 
+                        state={penaltyInputs.currentRate} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
+                        label="Current Rate (%)" 
+                        min={0} max={10} step={0.1} precision={2} 
+                      />
+                    </VStack>
+                  )}
+
+                  {penaltyCalculationType === 'fixed' && (
+                    <VStack spacing={3} align="stretch">
+                      <DollarInput 
+                        state={penaltyInputs.currentBalance} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
+                        label="Current Mortgage Balance" 
+                        step={1000} 
+                      />
+                      <NumInput 
+                        state={penaltyInputs.currentRate} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
+                        label="Current Rate (%)" 
+                        min={0} max={10} step={0.1} precision={2} 
+                      />
+                      <NumInput 
+                        state={penaltyInputs.termRemaining} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, termRemaining: value}))} 
+                        label="Term Remaining (Months)" 
+                        min={0} max={120} step={1} precision={0} 
+                      />
+                      <NumInput 
+                        state={penaltyInputs.currentDiscountRate} 
+                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentDiscountRate: value}))} 
+                        label="Current Market Rate (%)" 
+                        min={0} max={10} step={0.1} precision={2} 
+                      />
+                    </VStack>
+                  )}
+
+                  {penaltyCalculationType === 'manual' && (
+                    <DollarInput 
+                      state={penaltyInputs.manualAmount || 0} 
+                      stateSetter={(value) => setPenaltyInputs(prev => ({...prev, manualAmount: value}))} 
+                      label="Penalty Amount" 
+                      step={100} 
+                    />
+                  )}
+                </VStack>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <VStack spacing={3} w="full">
+                  <Button 
+                    onClick={handlePenaltyCalculation} 
+                    style={{
+                      backgroundColor: '#3182CE',
+                      color: 'white',
+                      border: 'none'
+                    }}
+                    _hover={{ 
+                      backgroundColor: '#2C5282',
+                      color: 'white'
+                    }}
+                    w="full"
+                  >
+                    <Text color="white" fontWeight="medium">Apply Penalty</Text>
+                  </Button>
+                  <Button 
+                    onClick={handleDialogClose} 
+                    variant="outline" 
+                    w="full"
+                  >
+                    Cancel
+                  </Button>
+                </VStack>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Dialog.Root>
         {salePrice > 99999 &&<TextBox label="Net Proceeds" bold value={formatCurrency(netProceeds)} />}
       </div>
 
@@ -170,14 +376,14 @@ function App() {
             )}
             {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
               <div>
-                <Text>CMHC Premium: {formatCurrency(cmhcPremium)}</Text>
-                <Text>CMHC Tax Due on Closing: {formatCurrency(cmhcTaxDueOnClosing)}</Text>
+                <TextBox label="CMHC Premium" value={formatCurrency(cmhcPremium)} />
+                <TextBox label="CMHC Tax Due on Closing" value={formatCurrency(cmhcTaxDueOnClosing)} />
               </div>
             )} 
             {purchasePrice > 99999 && <TextBox label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage)} />}
             <NumInput state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />
             {portingMortgage && <Text>Blended Rate: {blendedRate.toFixed(2)}%</Text>}
-            <NumInput state={ammortizationYears} stateSetter={setAmortizationYears} label="Ammortization (Years)" min={1} max={30} step={1} precision={0} />
+            <NumInput state={ammortizationYears} stateSetter={setAmortizationYears} label="Ammortization (Years)" min={1} max={30} step={5} precision={0} />
           </div>
 
           <div className="column">
@@ -186,7 +392,7 @@ function App() {
             <TextBox label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />
             <DollarInput state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buying)" step={100} />
             <DollarInput state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />
-            <DollarInput state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={100} /> 
+            <DollarInput state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} /> 
             <Check state={homeInspection} stateSetter={setHomeInspection} label="Home Inspection?" />
           </div>
           

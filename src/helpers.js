@@ -66,3 +66,56 @@ export function calculateBlendRate(currentMortgage, currentRate, newMortgage, ne
   const blendedRate = (currentMortgage * currentRate + newMortgage * newRate) / totalMortgage;
   return blendedRate;
 }
+
+export function calculateMortgageInterest(mortgage, rate) {
+  return mortgage * (rate / 100) / 12;
+}
+
+export function calculateThreeMonthsInterest(mortgage, rate) {
+  console.log('3-month interest calculation:', {
+    mortgage,
+    rate,
+    calculation: `${mortgage} * ${rate / 100} * (3/12)`,
+    result: mortgage * (rate / 100) * (3 / 12)
+  });
+  return mortgage * (rate / 100) * (3 / 12);
+}
+
+export function calculateMortgagePenaltyIRD(mortgage, currentRate, currentMarketRate, monthsRemaining) {
+  console.log('IRD Calculation inputs:', {
+    mortgage,
+    currentRate,
+    currentMarketRate,
+    monthsRemaining
+  });
+
+  // IRD is the difference between your rate and current market rate
+  const interestDifference = currentRate - currentMarketRate;
+  console.log('Interest difference:', interestDifference);
+
+  // If current market rates are higher, no penalty (or minimal 3-month penalty)
+  if (interestDifference <= 0) {
+    const threeMonthFallback = calculateThreeMonthsInterest(mortgage, currentRate);
+    console.log('No IRD penalty, returning 3-month interest:', threeMonthFallback);
+    return threeMonthFallback;
+  }
+
+  // Calculate the interest rate differential penalty
+  const yearsRemaining = monthsRemaining / 12;
+  const irdPenalty = mortgage * (interestDifference / 100) * yearsRemaining;
+  console.log('IRD penalty calculation:', {
+    yearsRemaining,
+    calculation: `${mortgage} * ${interestDifference / 100} * ${yearsRemaining}`,
+    irdPenalty
+  });
+
+  // IRD penalty is typically the greater of 3 months interest or the IRD calculation
+  const threeMonthPenalty = calculateThreeMonthsInterest(mortgage, currentRate);
+  console.log('3-month penalty:', threeMonthPenalty);
+
+  const finalPenalty = Math.max(irdPenalty, threeMonthPenalty);
+  console.log('Final penalty (max of IRD and 3-month):', finalPenalty);
+
+  return finalPenalty;
+}
+

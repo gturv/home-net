@@ -13,7 +13,10 @@ export default function NumInput({state, stateSetter, label, min=0, max=1000000,
         onFocus={(e) => e.target.select()}
         marginBottom={3}
         formatOptions={{
-          maximumFractionDigits: precision
+          style: "decimal",
+          maximumFractionDigits: precision,
+          minimumFractionDigits: 0,
+          useGrouping: false
         }}
       >
         <NumberInput.Input />
