@@ -148,10 +148,10 @@ function App() {
         setDownPayment(netProceeds);
         setDownPaymentInput(netProceeds);
       }
-      else if (netProceeds > 0 && portingMortgage && netProceeds < mortgageRemaining) {
+/*       else if (netProceeds > 0 && portingMortgage && netProceeds < mortgageRemaining) {
         setDownPayment(mortgageRemaining);
         setDownPaymentInput(mortgageRemainingInput);
-      }
+      } */
     }
   }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput]);
 
@@ -163,7 +163,7 @@ function App() {
       
       if (netProceeds > 0) {
         // If net proceeds exceed purchase price, set down payment to purchase price (100% down)
-        if (netProceeds >= purchasePrice) {
+        if (netProceeds >= purchasePrice && purchasePrice > 0) {
           setDownPayment(purchasePrice);
           setDownPaymentInput(purchasePrice);
         } else {
@@ -362,7 +362,7 @@ function App() {
             </Dialog.Content>
           </Dialog.Positioner>
         </Dialog.Root>
-        {salePrice > 99999 &&<TextBox label="Net Proceeds" bold value={formatCurrency(netProceeds)} />}
+        {/* {salePrice > 99999 &&<TextBox label="Net Proceeds" bold value={formatCurrency(netProceeds)} />} */}
       </div>
 
       <div className="purchase-section">
@@ -375,7 +375,7 @@ function App() {
               <TextBox label="Down Payment (%)" value={`${downPaymentPercent.toFixed(1)}%`} />
             )} */}
 
-            {purchasePrice > 99999 && <TextBox label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage)} />}
+            <TextBox label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />
             <NumInput state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />
             {portingMortgage && <TextBox label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />}
                         {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
@@ -401,8 +401,8 @@ function App() {
           </div>
           
         </div>
-         <TextBox bold label={cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
-      </div>
+{/*          <TextBox bold label={cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
+ */}      </div>
 
       <div className="column">
         <h2>Ongoing Costs</h2>
@@ -412,25 +412,29 @@ function App() {
         <DollarInput state={insuranceYearly} stateSetter={setInsuranceYearly} label="Home Insurance (Yearly)" step={100} />
         <DollarInput state={rentalIncome} stateSetter={setRentalIncome} label="Rental Income (Monthly)" step={100} />
         <TextBox label="Monthly Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />
-        <TextBox bold label="Monthly Costs" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
+{/*         <TextBox bold label="Monthly Costs" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
+ */}      </div>
+    </div>
+    <div className="container" style={{ marginTop: '2rem' }}>
+      <div className="column">
+        <h3 style={{fontWeight: 'bold'}}>Net Proceeds</h3>
+        <TextBox label="" value={salePrice > 99999 && mortgageRemaining > 0 ? formatCurrency(netProceeds) : 0} />
+      </div>
+      
+      <div className="purchase-section flex" style={{justifyContent: 'center', flexDirection: 'column', alignItems: 'center'}}>
+        <h3 className='align' style={{fontWeight: 'bold'}}>{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</h3>
+        <div style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+          <div style={{margin: '0 auto'}}>
+            <TextBox label={""} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
+          </div>
+        </div>
+      </div>
+      
+      <div className="column">
+        <h3 style={{fontWeight: 'bold'}}>Monthly Costs</h3>
+        <TextBox label="" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
       </div>
     </div>
-{/*     <div className="container" style={{ marginTop: '2rem' }}>
-      <div className="column">
-        <h3>Net Proceeds</h3>
-        <TextBox label="From Sale" value={formatCurrency(netProceeds)} />
-      </div>
-      
-      <div className="column">
-        <h3>{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</h3>
-        <TextBox label={cashNeeded < 0 ? "From Purchase" : "For Purchase"} value={formatCurrency(Math.abs(cashNeeded))} />
-      </div>
-      
-      <div className="column">
-        <h3>Monthly Costs</h3>
-        <TextBox label="Total Monthly" value={formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome)} />
-      </div>
-    </div> */}
   </div>
   );
 }
