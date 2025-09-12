@@ -1,8 +1,8 @@
 
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, } from 'react';
 import './App.css';
-import { Text, Dialog, Button, VStack, HStack, RadioGroup } from '@chakra-ui/react'
+import { Text, Dialog, Button, VStack, HStack } from '@chakra-ui/react'
 import { calculateLandTransferTax, calculateCMHC, formatCurrency, calculateMortgagePayment, calculateBlendRate, calculateThreeMonthsInterest, calculateMortgagePenaltyIRD } from './helpers';
 import DollarInput from './components/DollarInput.jsx';
 import NumInput from './components/NumInput.jsx';
@@ -55,6 +55,10 @@ function App() {
   const [mortgagePenaltyApplies, setMortgagePenaltyApplies] = useState(false);
   const [mortgagePenaltyAmount, setMortgagePenaltyAmount] = useState(0);
   const [mortgagePenaltyEntered, setMortgagePenaltyEntered] = useState(false);
+  
+  // Share functionality states
+  const [shareButtonState, setShareButtonState] = useState('Share');
+  const [shareButtonDisabled, setShareButtonDisabled] = useState(false);
   
   // Dialog states
   const [penaltyDialogOpen, setPenaltyDialogOpen] = useState(false);
@@ -139,6 +143,95 @@ function App() {
     setMortgagePenaltyApplies(false);
   };
 
+  // Share functionality
+  const generateShareURL = () => {
+    const params = new URLSearchParams({
+      sp: salePrice,
+      cr: commissionRate,
+      lb: lawyerFeeBuy,
+      ls: lawyerFeeSell,
+      mr: mortgageRemaining,
+      pt: propertyTax,
+      pm: portingMortgage,
+      mrc: mortgageRateCurrent,
+      mrn: mortgageRateNew,
+      pp: purchasePrice,
+      dp: downPayment,
+      hi: homeInspection,
+      rn: renovations,
+      mc: movingCosts,
+      cf: condoFees,
+      ut: utilities,
+      iy: insuranceYearly,
+      ri: rentalIncome,
+      ay: ammortizationYears,
+      mpa: mortgagePenaltyApplies,
+      mpo: mortgagePenaltyAmount,
+      mpe: mortgagePenaltyEntered
+    });
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  };
+
+  const handleShare = async () => {
+    const shareURL = generateShareURL();
+    try {
+      await navigator.clipboard.writeText(shareURL);
+      setShareButtonState('Copied');
+      setShareButtonDisabled(true);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      // Fallback: you could show the URL in a dialog or alert
+      alert('Share URL: ' + shareURL);
+    }
+  };
+
+  // Load data from URL parameters on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.has('sp')) {
+      setSalePrice(Number(urlParams.get('sp')) || 0);
+      setCommissionRate(Number(urlParams.get('cr')) || 5);
+      setLawyerFeeBuy(Number(urlParams.get('lb')) || 2000);
+      setLawyerFeeSell(Number(urlParams.get('ls')) || 1500);
+      setMortgageRemaining(Number(urlParams.get('mr')) || 0);
+      setMortgageRemainingInput(Number(urlParams.get('mr')) || 0);
+      setPropertyTax(Number(urlParams.get('pt')) || 5000);
+      setPortingMortgage(urlParams.get('pm') === 'true');
+      setMortgageRateCurrent(Number(urlParams.get('mrc')) || 4);
+      setMortgageRateNew(Number(urlParams.get('mrn')) || 4);
+      setPurchasePrice(Number(urlParams.get('pp')) || 0);
+      setPurchasePriceInput(Number(urlParams.get('pp')) || 0);
+      setDownPayment(Number(urlParams.get('dp')) || 0);
+      setDownPaymentInput(Number(urlParams.get('dp')) || 0);
+      setHomeInspection(urlParams.get('hi') === 'true');
+      setRenovations(Number(urlParams.get('rn')) || 0);
+      setMovingCosts(Number(urlParams.get('mc')) || 0);
+      setCondoFees(Number(urlParams.get('cf')) || 0);
+      setUtilities(Number(urlParams.get('ut')) || 250);
+      setInsuranceYearly(Number(urlParams.get('iy')) || 1500);
+      setRentalIncome(Number(urlParams.get('ri')) || 0);
+      setAmortizationYears(Number(urlParams.get('ay')) || 25);
+      setMortgagePenaltyApplies(urlParams.get('mpa') === 'true');
+      setMortgagePenaltyAmount(Number(urlParams.get('mpo')) || 0);
+      setMortgagePenaltyEntered(urlParams.get('mpe') === 'true');
+    }
+  }, []);
+
+  // Reset share button when any input changes
+  useEffect(() => {
+    // Only reset if button is currently showing "Copied"
+    if (shareButtonState === 'Copied') {
+      setShareButtonState('Share');
+      setShareButtonDisabled(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salePrice, commissionRate, lawyerFeeBuy, lawyerFeeSell, mortgageRemaining, propertyTax, 
+      portingMortgage, mortgageRateCurrent, mortgageRateNew, purchasePrice, downPayment, 
+      homeInspection, renovations, movingCosts, condoFees, utilities, insuranceYearly, 
+      rentalIncome, ammortizationYears, mortgagePenaltyApplies, mortgagePenaltyAmount, 
+      mortgagePenaltyEntered]); // Intentionally excluding shareButtonState
+
   // Set down payment to net proceeds when mortgage remaining changes
   useEffect(() => {
     if (mortgageRemaining > 0) {
@@ -208,7 +301,22 @@ function App() {
 
   return (
   <div>
-    <h1 style={{ marginBottom: "3rem" }}>Home Purchase/ Sale Calculator</h1>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '1.5rem' }}>
+      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", margin: 0 }}>Home Purchase/ Sale Calculator</h1>
+      <Button 
+        onClick={handleShare}
+        disabled={shareButtonDisabled}
+        style={{ 
+          fontSize: "1.2rem", 
+          color: shareButtonDisabled ? "#999" : "#666", 
+          position: 'absolute', 
+          right: 0,
+          cursor: shareButtonDisabled ? 'default' : 'pointer'
+        }}
+      >
+        {shareButtonState}
+      </Button>
+    </div>
     <div className="container">
       <div className="column">
         <h2>Sale Details</h2>
@@ -405,17 +513,17 @@ function App() {
  */}      </div>
 
       <div className="column">
-        <h2>Ongoing Costs</h2>
+        <h2>Monthly Costs</h2>
+        <TextBox label="Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />
         <DollarInput state={propertyTax} stateSetter={setPropertyTax} label="Property Tax (Yearly)" step={100} />
         <DollarInput state={condoFees} stateSetter={setCondoFees} label="Condo Fees (Monthly)" step={50} />
         <DollarInput state={utilities} stateSetter={setUtilities} label="Utilities (Monthly)" step={50} />
         <DollarInput state={insuranceYearly} stateSetter={setInsuranceYearly} label="Home Insurance (Yearly)" step={100} />
         <DollarInput state={rentalIncome} stateSetter={setRentalIncome} label="Rental Income (Monthly)" step={100} />
-        <TextBox label="Monthly Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />
 {/*         <TextBox bold label="Monthly Costs" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
  */}      </div>
     </div>
-    <div className="container" style={{ marginTop: '2rem' }}>
+    <div className="container" style={{ marginTop: '0.5rem' }}>
       <div className="column">
         <h3 style={{fontWeight: 'bold'}}>Net Proceeds</h3>
         <TextBox label="" value={salePrice > 99999 && mortgageRemaining > 0 ? formatCurrency(netProceeds) : 0} />
@@ -431,7 +539,7 @@ function App() {
       </div>
       
       <div className="column">
-        <h3 style={{fontWeight: 'bold'}}>Monthly Costs</h3>
+        <h3 style={{fontWeight: 'bold'}}>Monthly Expense</h3>
         <TextBox label="" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
       </div>
     </div>
