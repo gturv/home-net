@@ -70,6 +70,13 @@ function App() {
     currentDiscountRate: 0,
     currentPenaltyRate: 0
   });
+  const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
+  const mortgageNew = purchasePrice - downPayment
+  const downPaymentPercent = (downPayment / purchasePrice) * 100;
+  const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
+
+  const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount
+
 
   // Create debounced setters
   const debouncedSetMortgageRemaining = useDebounce(setMortgageRemaining, 500);
@@ -235,25 +242,20 @@ function App() {
   // Set down payment to net proceeds when mortgage remaining changes
   useEffect(() => {
     if (mortgageRemaining > 0) {
-      const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
-      const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining;
       if (netProceeds > 0 && !portingMortgage) {
         setDownPayment(netProceeds);
         setDownPaymentInput(netProceeds);
       }
-/*       else if (netProceeds > 0 && portingMortgage && netProceeds < mortgageRemaining) {
-        setDownPayment(mortgageRemaining);
-        setDownPaymentInput(mortgageRemainingInput);
-      } */
     }
-  }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput]);
+  }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput, mortgagePenaltyAmount, netProceeds]);
+
 
   // Intelligently set down payment when purchase price changes (after debounce)
   useEffect(() => {
     if (purchasePrice > 0 && mortgageRemaining > 0) {
-      const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
-      const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining;
-      
+/*       const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
+      const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount;
+       */
       if (netProceeds > 0) {
         // If net proceeds exceed purchase price, set down payment to purchase price (100% down)
         if (netProceeds >= purchasePrice && purchasePrice > 0) {
@@ -266,17 +268,9 @@ function App() {
         }
       }
     }
-  }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining]);
+  }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining, mortgagePenaltyAmount, netProceeds]);
 
-
-
-
-  const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
-  const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount
-  const mortgageNew = purchasePrice - downPayment
-  const downPaymentPercent = (downPayment / purchasePrice) * 100;
-  const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
-
+  
   const landTransferTax = calculateLandTransferTax(purchasePrice);
   
   // Calculate base cash needed for purchase
@@ -297,17 +291,16 @@ function App() {
     portingMortgage ? blendedRate : mortgageRateNew, 
     ammortizationYears
   );
-  //const cashPulled = netProceeds - cashNeeded;
 
   return (
   <div>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '1.5rem' }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", margin: 0 }}>Home Purchase/ Sale Calculator</h1>
+      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", margin: 0 }}>Home Purchase/Sale Calculator</h1>
       <Button 
         onClick={handleShare}
         disabled={shareButtonDisabled}
         style={{ 
-          fontSize: "1.2rem", 
+          fontSize: "1rem", 
           color: shareButtonDisabled ? "#999" : "#666", 
           position: 'absolute', 
           right: 0,
