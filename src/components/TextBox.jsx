@@ -3,7 +3,7 @@ import { Text, Field, Box } from "@chakra-ui/react"
 export default function TextBox({label, value, bold = false, onClick = null}) {
   return (
     <Field.Root>
-      <Field.Label>
+      <Field.Label whiteSpace="nowrap" fontSize={{ base: "sm", lg: "md" }}>
         {label}
       </Field.Label>
       <Box
@@ -14,14 +14,15 @@ export default function TextBox({label, value, bold = false, onClick = null}) {
         py={2}
         bg="bg.panel"
         minH="10"
-        width="182px"
+        width="132px"
         display="flex"
         alignItems="center"
         color="fg.default"
         fontSize="sm"
         fontFamily="inherit"
         fontWeight={bold ? "bold" : "normal"}
-        marginBottom={3}
+        marginBottom={1}
+        
         onClick={onClick}
         _focusVisible={{
           borderColor: "colorPalette.500",

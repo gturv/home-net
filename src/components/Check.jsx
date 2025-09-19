@@ -9,7 +9,7 @@ export default function Check({state, stateSetter, label}) {
     >
       <Checkbox.HiddenInput />
       <Checkbox.Control />
-      <Checkbox.Label>{label}</Checkbox.Label>
+      <Checkbox.Label whiteSpace="nowrap" fontSize={{ base: "sm", lg: "md" }}>{label}</Checkbox.Label>
     </Checkbox.Root>
   );
 }

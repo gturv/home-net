@@ -4,7 +4,7 @@ import { formatCurrency } from "../helpers.js"
 export default function DollarInput({state, stateSetter, label, min=0, max=1000000, step=1000, precision=0}) {
   return (
     <Field.Root>
-      <Field.Label>
+      <Field.Label whiteSpace="nowrap" fontSize={{ base: "sm", lg: "md" }}>
         {label}
       </Field.Label>
       <NumberInput.Root
@@ -13,9 +13,10 @@ export default function DollarInput({state, stateSetter, label, min=0, max=10000
         min={min}
         max={max}
         step={step}
+        width={"132px"}
         precision={precision}
         onFocus={(e) => e.target.select()}
-        marginBottom={3}
+        marginBottom={1}
         formatOptions={{
           style: "currency",
           currency: "USD",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, } from 'react';
 import './App.css';
-import { Text, Dialog, Button, VStack, HStack } from '@chakra-ui/react'
+import { Text, Dialog, Button, VStack, HStack, Flex, Box } from '@chakra-ui/react'
 import { calculateLandTransferTax, calculateCMHC, formatCurrency, calculateMortgagePayment, calculateBlendRate, calculateThreeMonthsInterest, calculateMortgagePenaltyIRD } from './helpers';
 import DollarInput from './components/DollarInput.jsx';
 import NumInput from './components/NumInput.jsx';
@@ -292,251 +292,399 @@ function App() {
     ammortizationYears
   );
 
+  // Calculate section heights for desktop alignment
   return (
-  <div>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '1.5rem' }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", margin: 0 }}>Home Purchase/Sale Calculator</h1>
+  <Box p={4}>
+    <Flex align="center" justify="center" position="relative" mb={6}>
+      <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
       <Button 
         onClick={handleShare}
         disabled={shareButtonDisabled}
-        style={{ 
-          fontSize: "1rem", 
-          color: shareButtonDisabled ? "#999" : "#666", 
-          position: 'absolute', 
-          right: 0,
-          cursor: shareButtonDisabled ? 'default' : 'pointer'
-        }}
+        variant="ghost"
+        fontSize="1rem"
+        color={shareButtonDisabled ? "gray.400" : "gray.600"}
+        position="absolute"
+        right={0}
+        cursor={shareButtonDisabled ? 'default' : 'pointer'}
       >
         {shareButtonState}
       </Button>
-    </div>
-    <div className="container">
-      <div className="column">
-        <h2>Sale Details</h2>
-        <DollarInput state={salePrice} stateSetter={setSalePrice} label="Sale Price" step={5000} />
-        <DollarInput state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />
-        <NumInput state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />
-        <TextBox label="Commission with HST" value={formatCurrency(commissionWithHST)} />
-        <DollarInput state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Selling)" step={100} />
-        {!mortgagePenaltyApplies ?
-        <Check state={portingMortgage} stateSetter={setPortingMortgage} label="Porting Mortgage?" />
-          : ""
-      }
-        { portingMortgage && 
-          <NumInput state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Mortgage Rate (%)" min={0} max={10} step={0.1} precision={2} />
-        }
-          <Check state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty?" />
+    </Flex>
+    
+    <Box display={{ base: "flex", lg: "grid" }} 
+         flexDirection={{ base: "column" }} 
+         gridTemplateColumns={{ lg: "1fr 2fr 1fr" }} 
+         gap={{ base: 6, lg: 16 }} 
+         minH={{ base: "auto", lg: "600px" }}>
+      {/* Sale Details Section */}
+      <VStack align="flex-start" w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
+        <Box w="full">
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full">Sale Details</Text>
+          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+            {(() => {
+              // Create array of all sale detail items
+              const saleItems = [
+                <DollarInput key="salePrice" state={salePrice} stateSetter={setSalePrice} label="Sale Price" step={5000} />,
+                <DollarInput key="mortgageRemaining" state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />,
+                <NumInput key="commissionRate" state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />,
+                <TextBox key="commissionHST" label="Commission w/ HST" value={formatCurrency(commissionWithHST)} />,
+                <DollarInput key="lawyerFeeSell" state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Sell)" step={100} />,
+                ...(!mortgagePenaltyApplies ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Porting Mortgage?" />] : []),
+                ...(portingMortgage ? [<NumInput key="currentRate" state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Rate (%)" min={0} max={10} step={0.1} precision={2} />] : []),
+                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty?" />,
+                ...(mortgagePenaltyApplies && mortgagePenaltyEntered ? [<TextBox key="penaltyAmount" onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty" value={formatCurrency(mortgagePenaltyAmount)} />] : [])
+              ];
 
-        {mortgagePenaltyApplies && mortgagePenaltyEntered && (
-          <div>
-            <TextBox onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty Amount" value={formatCurrency(mortgagePenaltyAmount)} />
-          </div>
-        )}
-        
-        {/* Mortgage Penalty Dialog */}
-        <Dialog.Root open={penaltyDialogOpen} onOpenChange={setPenaltyDialogOpen}>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content maxW="md">
-              <Dialog.CloseTrigger onClick={handleDialogClose} />
-              <Dialog.Header>
-                <Dialog.Title>Calculate Mortgage Penalty</Dialog.Title>
-              </Dialog.Header>
-              <Dialog.Body>
-                <VStack spacing={4} align="stretch">
-                  <Text fontWeight="bold">Select calculation method:</Text>
-                  <VStack align="stretch" spacing={3}>
-                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('variable')}>
-                      <input 
-                        type="radio" 
-                        name="penaltyType" 
-                        value="variable" 
-                        checked={penaltyCalculationType === 'variable'}
-                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
-                      />
-                      <Text>Variable Rate (3 months interest)</Text>
-                    </HStack>
-                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('fixed')}>
-                      <input 
-                        type="radio" 
-                        name="penaltyType" 
-                        value="fixed" 
-                        checked={penaltyCalculationType === 'fixed'}
-                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
-                      />
-                      <Text>Fixed Rate (Interest Rate Differential)</Text>
-                    </HStack>
-                    <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('manual')}>
-                      <input 
-                        type="radio" 
-                        name="penaltyType" 
-                        value="manual" 
-                        checked={penaltyCalculationType === 'manual'}
-                        onChange={(e) => setPenaltyCalculationType(e.target.value)}
-                      />
-                      <Text>Enter manually</Text>
-                    </HStack>
+              // Split items into two columns with max 4 items per column on mobile, single column on desktop
+              const maxItemsPerColumn = 4;
+              const midPoint = Math.min(maxItemsPerColumn, Math.ceil(saleItems.length / 2));
+              const firstColumn = saleItems.slice(0, midPoint);
+              const secondColumn = saleItems.slice(midPoint);
+
+              return (
+                <>
+                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                    {firstColumn.map((item, index) => (
+                      <Box key={index} w="full">
+                        {item}
+                      </Box>
+                    ))}
+                    {/* On desktop, add second column items to first column */}
+                    <Box display={{ base: "none", lg: "contents" }}>
+                      {secondColumn.map((item, index) => (
+                        <Box key={`desktop-${index}`} w="full">
+                          {item}
+                        </Box>
+                      ))}
+                    </Box>
                   </VStack>
-
-                  {penaltyCalculationType === 'variable' && (
-                    <VStack spacing={3} align="stretch">
-                      <DollarInput 
-                        state={penaltyInputs.currentBalance} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
-                        label="Current Mortgage Balance" 
-                        step={1000} 
-                      />
-                      <NumInput 
-                        state={penaltyInputs.currentRate} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
-                        label="Current Rate (%)" 
-                        min={0} max={10} step={0.1} precision={2} 
-                      />
+                  {secondColumn.length > 0 && (
+                    <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4} display={{ base: "flex", lg: "none" }}>
+                      {secondColumn.map((item, index) => (
+                        <Box key={index} w="full">
+                          {item}
+                        </Box>
+                      ))}
                     </VStack>
                   )}
+                </>
+              );
+            })()}
+          </Flex>
+        </Box>
+        
+        {/* Net Proceeds - Full width on mobile */}
+        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+          <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Net Proceeds</Text>
+          <Box
+            border="1px solid"
+            borderColor="border.emphasized"
+            borderRadius="md"
+            px={3}
+            py={2}
+            bg="bg.panel"
+            minH="10"
+            width="200px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            color="fg.default"
+            fontSize="sm"
+            fontFamily="inherit"
+            textAlign="center"
+          >
+            {salePrice > 99999 && mortgageRemaining > 0 ? formatCurrency(netProceeds) : 0}
+          </Box>
+        </Box>
+      </VStack>
 
-                  {penaltyCalculationType === 'fixed' && (
-                    <VStack spacing={3} align="stretch">
-                      <DollarInput 
-                        state={penaltyInputs.currentBalance} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
-                        label="Current Mortgage Balance" 
-                        step={1000} 
-                      />
-                      <NumInput 
-                        state={penaltyInputs.currentRate} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
-                        label="Current Rate (%)" 
-                        min={0} max={10} step={0.1} precision={2} 
-                      />
-                      <NumInput 
-                        state={penaltyInputs.termRemaining} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, termRemaining: value}))} 
-                        label="Term Remaining (Months)" 
-                        min={0} max={120} step={1} precision={0} 
-                      />
-                      <NumInput 
-                        state={penaltyInputs.currentDiscountRate} 
-                        stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentDiscountRate: value}))} 
-                        label="Current Market Rate (%)" 
-                        min={0} max={10} step={0.1} precision={2} 
-                      />
+      {/* Purchase Details Section */}
+      <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
+        <Box w="full">
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "center" }} w="full">Purchase Details</Text>
+          <Flex direction={{ base: "row", lg: "row" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+            {(() => {
+              // Create array of all purchase detail items
+              const purchaseItems = [
+                <DollarInput key="purchasePrice" state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />,
+                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} />,
+                <TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />,
+                <NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />,
+                ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),
+                ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcPremium" label="CMHC Premium" value={formatCurrency(cmhcPremium)} />] : []),
+                <NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />,
+                <TextBox key="landTransferTax" label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />,
+                <DollarInput key="lawyerFeeBuy" state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buy)" step={100} />,
+                <DollarInput key="renovations" state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />,
+                <DollarInput key="movingCosts" state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} />,
+                ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcTax" label="CMHC Tax (Closing)" value={formatCurrency(cmhcTaxDueOnClosing)} />] : []),
+                <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Home Inspection?" />
+              ];
+
+              // Split items into two columns with max 6 items per column
+              const maxItemsPerColumn = 6;
+              const midPoint = Math.min(maxItemsPerColumn, Math.ceil(purchaseItems.length / 2));
+              const firstColumn = purchaseItems.slice(0, midPoint);
+              const secondColumn = purchaseItems.slice(midPoint);
+
+              return (
+                <>
+                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                    {firstColumn.map((item, index) => (
+                      <Box key={index} w="full">
+                        {item}
+                      </Box>
+                    ))}
+                  </VStack>
+                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                    {secondColumn.map((item, index) => (
+                      <Box key={index} w="full">
+                        {item}
+                      </Box>
+                    ))}
+                  </VStack>
+                </>
+              );
+            })()}
+          </Flex>
+        </Box>
+        
+        {/* Cash Needed - Full width on mobile */}
+        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+          <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</Text>
+          <Box
+            border="1px solid"
+            borderColor="border.emphasized"
+            borderRadius="md"
+            px={3}
+            py={2}
+            bg="bg.panel"
+            minH="10"
+            width="200px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            color="fg.default"
+            fontSize="sm"
+            fontFamily="inherit"
+            textAlign="center"
+          >
+            {purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0}
+          </Box>
+        </Box>
+      </VStack>
+
+      {/* Monthly Costs Section */}
+      <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
+        <Box w="full">
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full">Monthly Costs</Text>
+          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+            {(() => {
+              // Create array of all monthly cost items
+              const monthlyItems = [
+                <TextBox key="mortgagePayment" label="Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />,
+                <DollarInput key="propertyTax" state={propertyTax} stateSetter={setPropertyTax} label="Property Tax" step={100} />,
+                <DollarInput key="condoFees" state={condoFees} stateSetter={setCondoFees} label="Condo Fees" step={50} />,
+                <DollarInput key="utilities" state={utilities} stateSetter={setUtilities} label="Utilities" step={50} />,
+                <DollarInput key="insurance" state={insuranceYearly} stateSetter={setInsuranceYearly} label="Home Insurance" step={100} />,
+                <DollarInput key="rentalIncome" state={rentalIncome} stateSetter={setRentalIncome} label="Rental Income" step={100} />
+              ];
+
+              // Split items into two columns with max 4 items per column on mobile, single column on desktop
+              const maxItemsPerColumn = 4;
+              const midPoint = Math.min(maxItemsPerColumn, Math.ceil(monthlyItems.length / 2));
+              const firstColumn = monthlyItems.slice(0, midPoint);
+              const secondColumn = monthlyItems.slice(midPoint);
+
+              return (
+                <>
+                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                    {firstColumn.map((item, index) => (
+                      <Box key={index} w="full">
+                        {item}
+                      </Box>
+                    ))}
+                    {/* On desktop, add second column items to first column */}
+                    <Box display={{ base: "none", lg: "contents" }}>
+                      {secondColumn.map((item, index) => (
+                        <Box key={`desktop-${index}`} w="full">
+                          {item}
+                        </Box>
+                      ))}
+                    </Box>
+                  </VStack>
+                  {secondColumn.length > 0 && (
+                    <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4} display={{ base: "flex", lg: "none" }}>
+                      {secondColumn.map((item, index) => (
+                        <Box key={index} w="full">
+                          {item}
+                        </Box>
+                      ))}
                     </VStack>
                   )}
+                </>
+              );
+            })()}
+          </Flex>
+        </Box>
+        
+        {/* Monthly Expense - Full width on mobile */}
+        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+          <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Monthly Expense</Text>
+          <Box
+            border="1px solid"
+            borderColor="border.emphasized"
+            borderRadius="md"
+            px={3}
+            py={2}
+            bg="bg.panel"
+            minH="10"
+            width="200px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            color="fg.default"
+            fontSize="sm"
+            fontFamily="inherit"
+            textAlign="center"
+          >
+            {purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0}
+          </Box>
+        </Box>
+      </VStack>
+    </Box>
 
-                  {penaltyCalculationType === 'manual' && (
-                    <DollarInput 
-                      state={penaltyInputs.manualAmount || 0} 
-                      stateSetter={(value) => setPenaltyInputs(prev => ({...prev, manualAmount: value}))} 
-                      label="Penalty Amount" 
-                      step={100} 
-                    />
-                  )}
+    {/* Mortgage Penalty Dialog */}
+    <Dialog.Root open={penaltyDialogOpen} onOpenChange={setPenaltyDialogOpen}>
+      <Dialog.Backdrop />
+      <Dialog.Positioner>
+        <Dialog.Content maxW="md">
+          <Dialog.CloseTrigger onClick={handleDialogClose} />
+          <Dialog.Header>
+            <Dialog.Title>Calculate Mortgage Penalty</Dialog.Title>
+          </Dialog.Header>
+          <Dialog.Body>
+            <VStack spacing={4} align="stretch">
+              <Text fontWeight="bold">Select calculation method:</Text>
+              <VStack align="stretch" spacing={3}>
+                <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('variable')}>
+                  <input 
+                    type="radio" 
+                    name="penaltyType" 
+                    value="variable" 
+                    checked={penaltyCalculationType === 'variable'}
+                    onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                  />
+                  <Text>Variable Rate (3 months interest)</Text>
+                </HStack>
+                <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('fixed')}>
+                  <input 
+                    type="radio" 
+                    name="penaltyType" 
+                    value="fixed" 
+                    checked={penaltyCalculationType === 'fixed'}
+                    onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                  />
+                  <Text>Fixed Rate (Interest Rate Differential)</Text>
+                </HStack>
+                <HStack cursor="pointer" onClick={() => setPenaltyCalculationType('manual')}>
+                  <input 
+                    type="radio" 
+                    name="penaltyType" 
+                    value="manual" 
+                    checked={penaltyCalculationType === 'manual'}
+                    onChange={(e) => setPenaltyCalculationType(e.target.value)}
+                  />
+                  <Text>Enter manually</Text>
+                </HStack>
+              </VStack>
+
+              {penaltyCalculationType === 'variable' && (
+                <VStack spacing={3} align="stretch">
+                  <DollarInput 
+                    state={penaltyInputs.currentBalance} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
+                    label="Current Mortgage Balance" 
+                    step={1000} 
+                  />
+                  <NumInput 
+                    state={penaltyInputs.currentRate} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
+                    label="Current Rate (%)" 
+                    min={0} max={10} step={0.1} precision={2} 
+                  />
                 </VStack>
-              </Dialog.Body>
-              <Dialog.Footer>
-                <VStack spacing={3} w="full">
-                  <Button 
-                    onClick={handlePenaltyCalculation} 
-                    style={{
-                      backgroundColor: '#3182CE',
-                      color: 'white',
-                      border: 'none'
-                    }}
-                    _hover={{ 
-                      backgroundColor: '#2C5282',
-                      color: 'white'
-                    }}
-                    w="full"
-                  >
-                    <Text color="white" fontWeight="medium">Apply Penalty</Text>
-                  </Button>
-                  <Button 
-                    onClick={handleDialogClose} 
-                    variant="outline" 
-                    w="full"
-                  >
-                    Cancel
-                  </Button>
+              )}
+
+              {penaltyCalculationType === 'fixed' && (
+                <VStack spacing={3} align="stretch">
+                  <DollarInput 
+                    state={penaltyInputs.currentBalance} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentBalance: value}))} 
+                    label="Current Mortgage Balance" 
+                    step={1000} 
+                  />
+                  <NumInput 
+                    state={penaltyInputs.currentRate} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentRate: value}))} 
+                    label="Current Rate (%)" 
+                    min={0} max={10} step={0.1} precision={2} 
+                  />
+                  <NumInput 
+                    state={penaltyInputs.termRemaining} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, termRemaining: value}))} 
+                    label="Term Remaining (Months)" 
+                    min={0} max={120} step={1} precision={0} 
+                  />
+                  <NumInput 
+                    state={penaltyInputs.currentDiscountRate} 
+                    stateSetter={(value) => setPenaltyInputs(prev => ({...prev, currentDiscountRate: value}))} 
+                    label="Current Market Rate (%)" 
+                    min={0} max={10} step={0.1} precision={2} 
+                  />
                 </VStack>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Dialog.Root>
-        {/* {salePrice > 99999 &&<TextBox label="Net Proceeds" bold value={formatCurrency(netProceeds)} />} */}
-      </div>
+              )}
 
-      <div className="purchase-section">
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Purchase Details</h2>
-        <div className="purchase-columns">
-          <div className="column">
-            <DollarInput state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />
-            <DollarInput state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ($) ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} />
-{/*             {downPayment > 0 && purchasePrice > 99999 && (
-              <TextBox label="Down Payment (%)" value={`${downPaymentPercent.toFixed(1)}%`} />
-            )} */}
-
-            <TextBox label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />
-            <NumInput state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />
-            {portingMortgage && <TextBox label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />}
-                        {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
-              <div>
-                <TextBox label="CMHC Premium" value={formatCurrency(cmhcPremium)} />
-              </div>
-            )} 
-          </div>
-
-          <div className="column">
-            {/* <TextBox label="Mortgage Payment" value={`$${mortgagePaymentPurchase.toFixed(2)}`} /> */}
-            <NumInput state={ammortizationYears} stateSetter={setAmortizationYears} label="Ammortization (Years)" min={1} max={30} step={5} precision={0} />
-            <TextBox label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />
-            <DollarInput state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buying)" step={100} />
-            <DollarInput state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />
-            <DollarInput state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} /> 
-            {downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 && (
-              <div>
-                <TextBox label="CMHC Tax Due on Closing" value={formatCurrency(cmhcTaxDueOnClosing)} />
-              </div>
-            )} 
-            <Check state={homeInspection} stateSetter={setHomeInspection} label="Home Inspection?" />
-          </div>
-          
-        </div>
-{/*          <TextBox bold label={cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
- */}      </div>
-
-      <div className="column">
-        <h2>Monthly Costs</h2>
-        <TextBox label="Mortgage Payment" value={purchasePrice > 99999 ? formatCurrency(mortgagePaymentPurchase) : 0} />
-        <DollarInput state={propertyTax} stateSetter={setPropertyTax} label="Property Tax (Yearly)" step={100} />
-        <DollarInput state={condoFees} stateSetter={setCondoFees} label="Condo Fees (Monthly)" step={50} />
-        <DollarInput state={utilities} stateSetter={setUtilities} label="Utilities (Monthly)" step={50} />
-        <DollarInput state={insuranceYearly} stateSetter={setInsuranceYearly} label="Home Insurance (Yearly)" step={100} />
-        <DollarInput state={rentalIncome} stateSetter={setRentalIncome} label="Rental Income (Monthly)" step={100} />
-{/*         <TextBox bold label="Monthly Costs" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
- */}      </div>
-    </div>
-    <div className="container" style={{ marginTop: '0.5rem' }}>
-      <div className="column">
-        <h3 style={{fontWeight: 'bold'}}>Net Proceeds</h3>
-        <TextBox label="" value={salePrice > 99999 && mortgageRemaining > 0 ? formatCurrency(netProceeds) : 0} />
-      </div>
-      
-      <div className="purchase-section flex" style={{justifyContent: 'center', flexDirection: 'column', alignItems: 'center'}}>
-        <h3 className='align' style={{fontWeight: 'bold'}}>{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</h3>
-        <div style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
-          <div style={{margin: '0 auto'}}>
-            <TextBox label={""} value={purchasePrice > 99999 && downPayment > 0 ? formatCurrency(Math.abs(cashNeeded)) : 0} />
-          </div>
-        </div>
-      </div>
-      
-      <div className="column">
-        <h3 style={{fontWeight: 'bold'}}>Monthly Expense</h3>
-        <TextBox label="" value={purchasePrice > 99999 ? formatCurrency((mortgagePaymentPurchase + condoFees + utilities + (propertyTax / 12) + (insuranceYearly / 12)) - rentalIncome) : 0} />
-      </div>
-    </div>
-  </div>
+              {penaltyCalculationType === 'manual' && (
+                <DollarInput 
+                  state={penaltyInputs.manualAmount || 0} 
+                  stateSetter={(value) => setPenaltyInputs(prev => ({...prev, manualAmount: value}))} 
+                  label="Penalty Amount" 
+                  step={100} 
+                />
+              )}
+            </VStack>
+          </Dialog.Body>
+          <Dialog.Footer>
+            <VStack spacing={3} w="full">
+              <Button 
+                onClick={handlePenaltyCalculation} 
+                style={{
+                  backgroundColor: '#3182CE',
+                  color: 'white',
+                  border: 'none'
+                }}
+                _hover={{ 
+                  backgroundColor: '#2C5282',
+                  color: 'white'
+                }}
+                w="full"
+              >
+                <Text color="white" fontWeight="medium">Apply Penalty</Text>
+              </Button>
+              <Button 
+                onClick={handleDialogClose} 
+                variant="outline" 
+                w="full"
+              >
+                Cancel
+              </Button>
+            </VStack>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  </Box>
   );
 }
 
