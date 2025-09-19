@@ -294,7 +294,7 @@ function App() {
 
   // Calculate section heights for desktop alignment
   return (
-  <Box p={4}>
+  <Box  >
     {/* Desktop Header with Share Button */}
     <Flex align="center" justify="center" position="relative" mb={{base: 0, lg: 6}} display={{ base: "none", lg: "flex" }}>
       <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
@@ -337,7 +337,7 @@ function App() {
       <VStack align="flex-start" w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
           <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full">Sale Details</Text>
-          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" >
             {(() => {
               // Create array of all sale detail items
               const saleItems = [
@@ -348,7 +348,7 @@ function App() {
                 <DollarInput key="lawyerFeeSell" state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Sell)" step={100} />,
                 ...(!mortgagePenaltyApplies ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Port Mortgage" />] : []),
                 ...(portingMortgage ? [<NumInput key="currentRate" state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Rate (%)" min={0} max={10} step={0.1} precision={2} />] : []),
-                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Penalty" />,
+                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty" />,
                 ...(mortgagePenaltyApplies && mortgagePenaltyEntered ? [<TextBox key="penaltyAmount" onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty" value={formatCurrency(mortgagePenaltyAmount)} />] : [])
               ];
 
@@ -419,14 +419,14 @@ function App() {
       <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative" mb={{ base: 3, lg: 0 }}>
         <Box w="full">
           <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "center" }} w="full">Purchase Details</Text>
-          <Flex direction={{ base: "row", lg: "row" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+          <Flex direction={{ base: "row", lg: "row" }} gap={4} align="flex-start" justify={{ base: "space-between", lg: "space-around" }} w="full" >
             {(() => {
               // Create array of all purchase detail items
               const purchaseItems = [
                 <DollarInput key="purchasePrice" state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />,
-                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? downPaymentPercent.toFixed(1) + "%" : ""}`} step={10000} max={10000000} />,
+                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} />,
                 <TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />,
-                <NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />,
+                <NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />,
                 ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcPremium" label="CMHC Premium" value={formatCurrency(cmhcPremium)} />] : []),
                 <NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />,
@@ -446,14 +446,14 @@ function App() {
 
               return (
                 <>
-                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                  <VStack flex={{ base: "0 0 40%", lg: "0 0 auto" }} align="flex-start" spacing={4}>
                     {firstColumn.map((item, index) => (
                       <Box key={index} w="full">
                         {item}
                       </Box>
                     ))}
                   </VStack>
-                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                  <VStack flex={{ base: "0 0 40%", lg: "0 0 auto" }} align="flex-start" spacing={4}>
                     {secondColumn.map((item, index) => (
                       <Box key={index} w="full">
                         {item}
@@ -495,7 +495,7 @@ function App() {
       <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
           <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "left" }} w="full">Monthly Costs</Text>
-          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
+          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" >
             {(() => {
               // Create array of all monthly cost items
               const monthlyItems = [
