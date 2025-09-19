@@ -295,7 +295,8 @@ function App() {
   // Calculate section heights for desktop alignment
   return (
   <Box p={4}>
-    <Flex align="center" justify="center" position="relative" mb={6}>
+    {/* Desktop Header with Share Button */}
+    <Flex align="center" justify="center" position="relative" mb={{base: 0, lg: 6}} display={{ base: "none", lg: "flex" }}>
       <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
       <Button 
         onClick={handleShare}
@@ -311,11 +312,27 @@ function App() {
       </Button>
     </Flex>
     
+    {/* Mobile-only Share Button */}
+    <Flex justify="flex-end" mb={0} display={{ base: "flex", lg: "none" }}>
+      <Button 
+        onClick={handleShare}
+        disabled={shareButtonDisabled}
+        variant="ghost"
+        fontSize="1rem"
+        color={shareButtonDisabled ? "gray.400" : "gray.600"}
+        cursor={shareButtonDisabled ? 'default' : 'pointer'}
+      >
+        {shareButtonState}
+      </Button>
+    </Flex>
+    
     <Box display={{ base: "flex", lg: "grid" }} 
          flexDirection={{ base: "column" }} 
          gridTemplateColumns={{ lg: "1fr 2fr 1fr" }} 
          gap={{ base: 6, lg: 16 }} 
-         minH={{ base: "auto", lg: "600px" }}>
+         minH={{ base: "auto", lg: "600px" }}
+         divideY={{ base: "1px", lg: "0" }}
+         divideColor={{ base: "border.emphasized", lg: "transparent" }}>
       {/* Sale Details Section */}
       <VStack align="flex-start" w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
@@ -329,9 +346,9 @@ function App() {
                 <NumInput key="commissionRate" state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />,
                 <TextBox key="commissionHST" label="Commission w/ HST" value={formatCurrency(commissionWithHST)} />,
                 <DollarInput key="lawyerFeeSell" state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Sell)" step={100} />,
-                ...(!mortgagePenaltyApplies ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Porting Mortgage?" />] : []),
+                ...(!mortgagePenaltyApplies ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Port Mortgage" />] : []),
                 ...(portingMortgage ? [<NumInput key="currentRate" state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Rate (%)" min={0} max={10} step={0.1} precision={2} />] : []),
-                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty?" />,
+                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Penalty" />,
                 ...(mortgagePenaltyApplies && mortgagePenaltyEntered ? [<TextBox key="penaltyAmount" onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty" value={formatCurrency(mortgagePenaltyAmount)} />] : [])
               ];
 
@@ -374,7 +391,7 @@ function App() {
         </Box>
         
         {/* Net Proceeds - Full width on mobile */}
-        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+        <Box w="full" display="flex" flexDirection="column" alignItems="center">
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Net Proceeds</Text>
           <Box
             border="1px solid"
@@ -399,9 +416,9 @@ function App() {
       </VStack>
 
       {/* Purchase Details Section */}
-      <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
+      <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative" mb={{ base: 3, lg: 0 }}>
         <Box w="full">
-          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "center" }} w="full">Purchase Details</Text>
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "center" }} w="full">Purchase Details</Text>
           <Flex direction={{ base: "row", lg: "row" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
             {(() => {
               // Create array of all purchase detail items
@@ -418,7 +435,7 @@ function App() {
                 <DollarInput key="renovations" state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />,
                 <DollarInput key="movingCosts" state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} />,
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcTax" label="CMHC Tax (Closing)" value={formatCurrency(cmhcTaxDueOnClosing)} />] : []),
-                <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Home Inspection?" />
+                <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Inspection?" />
               ];
 
               // Split items into two columns with max 6 items per column
@@ -450,7 +467,7 @@ function App() {
         </Box>
         
         {/* Cash Needed - Full width on mobile */}
-        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+        <Box w="full" display="flex" flexDirection="column" alignItems="center">
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</Text>
           <Box
             border="1px solid"
@@ -477,7 +494,7 @@ function App() {
       {/* Monthly Costs Section */}
       <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
-          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full">Monthly Costs</Text>
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "left" }} w="full">Monthly Costs</Text>
           <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" px={{ base: 4, lg: 0 }}>
             {(() => {
               // Create array of all monthly cost items
@@ -529,7 +546,7 @@ function App() {
         </Box>
         
         {/* Monthly Expense - Full width on mobile */}
-        <Box w="full" mt={4} display="flex" flexDirection="column" alignItems="center">
+        <Box w="full" display="flex" flexDirection="column" alignItems="center">
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Monthly Expense</Text>
           <Box
             border="1px solid"
