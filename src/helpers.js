@@ -1,4 +1,4 @@
-export function calculateLandTransferTax(purchasePrice) {
+export function calculateLandTransferTax(purchasePrice, firstTimeBuyer = false) {
   let tax = 0;
 
   if (purchasePrice <= 55000) {
@@ -11,6 +11,12 @@ export function calculateLandTransferTax(purchasePrice) {
     tax = 4475 + (purchasePrice - 400000) * 0.02;
   } else {
     tax = 36475 + (purchasePrice - 2000000) * 0.025;
+  }
+
+  // Apply first-time buyer rebate (maximum $4,000)
+  if (firstTimeBuyer) {
+    const rebate = Math.min(tax, 4000);
+    tax = tax - rebate;
   }
 
   return tax;

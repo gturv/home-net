@@ -32,7 +32,7 @@ function App() {
   const [salePrice, setSalePrice] = useState(0);
   const [commissionRate, setCommissionRate] = useState(5);
   const [lawyerFeeBuy, setLawyerFeeBuy] = useState(2000);
-  const [lawyerFeeSell, setLawyerFeeSell] = useState(1500);
+  const [lawyerFeeSell, setLawyerFeeSell] = useState(0);
   const [mortgageRemaining, setMortgageRemaining] = useState(0);
   const [mortgageRemainingInput, setMortgageRemainingInput] = useState(0); // For input display
   //const [mortgageAdditional, setMortgageAdditional] = useState(0);
@@ -56,6 +56,7 @@ function App() {
   const [mortgagePenaltyAmount, setMortgagePenaltyAmount] = useState(0);
   const [mortgagePenaltyEntered, setMortgagePenaltyEntered] = useState(false);
   const [mortgageFree, setMortgageFree] = useState(false);
+  const [firstTimeBuyer, setFirstTimeBuyer] = useState(false);
 
   
   // Share functionality states
@@ -178,7 +179,8 @@ function App() {
       ay: ammortizationYears,
       mpa: mortgagePenaltyApplies,
       mpo: mortgagePenaltyAmount,
-      mpe: mortgagePenaltyEntered
+      mpe: mortgagePenaltyEntered,
+      mf: mortgageFree
     });
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   };
@@ -226,9 +228,19 @@ function App() {
       setMortgagePenaltyApplies(urlParams.get('mpa') === 'true');
       setMortgagePenaltyAmount(Number(urlParams.get('mpo')) || 0);
       setMortgagePenaltyEntered(urlParams.get('mpe') === 'true');
-      setMortgageFree(urlParams.get('mf') === 'false');
+      setMortgageFree(urlParams.get('mf') === 'true');
     }
   }, []);
+
+  // hook to set default for lawyerFeeSell if user enters a sale price (otherwise it will impact the purchase cash needed)
+  useEffect(() => {
+    if (salePrice > 0 && lawyerFeeSell === 0) {
+      setLawyerFeeSell(1500);
+    }
+    if (salePrice === 0 && lawyerFeeSell !== 0) {
+      setLawyerFeeSell(0);
+    }
+  }, [salePrice, lawyerFeeSell]);
 
   // Reset share button when any input changes
   useEffect(() => {
@@ -284,7 +296,7 @@ function App() {
     }
   }, [mortgageRemaining, mortgageFree]);
   
-  const landTransferTax = calculateLandTransferTax(purchasePrice);
+  const landTransferTax = calculateLandTransferTax(purchasePrice, firstTimeBuyer);
   
   // Calculate minimum down payment based on Canadian requirements
   const calculateMinimumDownPayment = (purchasePrice) => {
@@ -454,21 +466,22 @@ function App() {
               const purchaseItems = [
                 <DollarInput key="purchasePrice" state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />,
                 <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} invalid={downPaymentError} errorText={downPaymentErrorText} />,
-                <TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />,
-                <NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />,
+                ...(!(purchasePrice > 0 && purchasePrice <= downPayment && downPayment > 0) ? [<TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />] : []),
+                ...(!(purchasePrice > 0 && purchasePrice <= downPayment && downPayment > 0) ? [<NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />] : []),
                 ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcPremium" label="CMHC Premium" value={formatCurrency(cmhcPremium)} />] : []),
-                <NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />,
+                ...(!(purchasePrice <= downPayment && downPayment > 0 && purchasePrice > 0) ? [<NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />] : []),
                 <TextBox key="landTransferTax" label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />,
                 <DollarInput key="lawyerFeeBuy" state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buy)" step={100} />,
                 <DollarInput key="renovations" state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />,
                 <DollarInput key="movingCosts" state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} />,
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcTax" label="CMHC Tax (Closing)" value={formatCurrency(cmhcTaxDueOnClosing)} />] : []),
-                <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Inspection?" />
+                <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Inspection?" />,
+                ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="firstTimeBuyer" state={firstTimeBuyer} stateSetter={setFirstTimeBuyer} label="First Time Buyer?" />] : [])
               ];
 
               // Split items into two columns with max 6 items per column
-              const maxItemsPerColumn = 6;
+              const maxItemsPerColumn = 5;
               const midPoint = Math.min(maxItemsPerColumn, Math.ceil(purchaseItems.length / 2));
               const firstColumn = purchaseItems.slice(0, midPoint);
               const secondColumn = purchaseItems.slice(midPoint);
