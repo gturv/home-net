@@ -83,6 +83,7 @@ function App() {
   // Create debounced setters
   const debouncedSetMortgageRemaining = useDebounce(setMortgageRemaining, 500);
   const debouncedSetPurchasePrice = useDebounce(setPurchasePrice, 800); // Longer delay for purchase price
+  const debouncedSetDownPayment = useDebounce(setDownPayment, 500);
 
   // Custom setters that handle both immediate input display and debounced actual values
   const handleMortgageRemainingChange = (value) => {
@@ -95,10 +96,10 @@ function App() {
     debouncedSetPurchasePrice(value);
   };
 
-  // Simple non-debounced handler for down payment to avoid conflicts
+  // Debounced handler for down payment to avoid showing errors while typing
   const handleDownPaymentChange = (value) => {
     setDownPaymentInput(value);
-    setDownPayment(value);
+    debouncedSetDownPayment(value);
   };
 
   // Handle mortgage penalty checkbox
@@ -225,7 +226,7 @@ function App() {
       setMortgagePenaltyApplies(urlParams.get('mpa') === 'true');
       setMortgagePenaltyAmount(Number(urlParams.get('mpo')) || 0);
       setMortgagePenaltyEntered(urlParams.get('mpe') === 'true');
-      setMortgageFree(urlParams.get('mf') === 'true');
+      setMortgageFree(urlParams.get('mf') === 'false');
     }
   }, []);
 
