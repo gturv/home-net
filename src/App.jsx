@@ -104,7 +104,7 @@ function App() {
   // Handle mortgage penalty checkbox
   const handleMortgagePenaltyChange = (checked) => {
     setMortgagePenaltyApplies(checked);
-    if (checked) {
+    if (checked && mortgageRemaining > 0) {
       // Set current values when opening dialog
       setPenaltyInputs({
         currentBalance: mortgageRemaining,
@@ -118,6 +118,7 @@ function App() {
     } else {
       setMortgagePenaltyAmount(0);
       setMortgagePenaltyEntered(false);
+//setMortgagePenaltyApplies(false);
     }
   };
 
@@ -273,8 +274,31 @@ function App() {
     }
   }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining, mortgagePenaltyAmount, netProceeds, mortgageFree]);
 
+  // Remove mortgagePenaltyAmount if mortgageRemaining is zero
+  useEffect(() => {
+    if (mortgageRemaining === 0 || mortgageFree) {
+      setMortgagePenaltyAmount(0);
+      setMortgagePenaltyApplies(false);
+      setMortgagePenaltyEntered(false);
+    }
+  }, [mortgageRemaining, mortgageFree]);
   
   const landTransferTax = calculateLandTransferTax(purchasePrice);
+  
+  // Calculate minimum down payment based on Canadian requirements
+  const calculateMinimumDownPayment = (purchasePrice) => {
+    if (purchasePrice <= 500000) {
+      return purchasePrice * 0.05; // 5% for first $500k
+    } else if (purchasePrice <= 1500000) {
+      return (500000 * 0.05) + ((purchasePrice - 500000) * 0.10); // 5% on first $500k, 10% on remainder
+    } else {
+      return purchasePrice * 0.20; // 20% for $1.5M+
+    }
+  };
+
+  const minimumDownPayment = calculateMinimumDownPayment(purchasePrice);
+  const downPaymentError = purchasePrice > 99999 && downPayment > 0 && downPayment < minimumDownPayment;
+  const downPaymentErrorText = downPaymentError ? `Minimum down payment: ${formatCurrency(minimumDownPayment)}` : "";
   
   // Calculate base cash needed for purchase
   const baseCashNeeded = purchasePrice - netProceeds - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0);
@@ -345,11 +369,11 @@ function App() {
               // Create array of all sale detail items
               const saleItems = [
                 <DollarInput key="salePrice" state={salePrice} stateSetter={setSalePrice} label="Sale Price" step={5000} />,
-                <DollarInput key="mortgageRemaining" state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} />,
+                <DollarInput key="mortgageRemaining" state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} invalid={(mortgageRemainingInput === 0 && portingMortgage) || (mortgageRemainingInput === 0 && mortgagePenaltyApplies)} errorText={"Enter mortgage amount"} />,
                 <NumInput key="commissionRate" state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />,
                 <TextBox key="commissionHST" label="Commission w/ HST" value={formatCurrency(commissionWithHST)} />,
                 <DollarInput key="lawyerFeeSell" state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Sell)" step={100} />,
-                ...(!portingMortgage ? [<Check key="mortgageFree" state={mortgageFree} stateSetter={setMortgageFree} label="Mortgage Free" />] : []),
+                ...(!portingMortgage && !mortgagePenaltyApplies ? [<Check key="mortgageFree" state={mortgageFree} stateSetter={setMortgageFree} label="Mortgage Free" />] : []),
                 ...(!mortgagePenaltyApplies && !mortgageFree ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Port Mortgage" />] : []),
                 ...(portingMortgage ? [<NumInput key="currentRate" state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Rate (%)" min={0} max={10} step={0.1} precision={2} />] : []),
                 ...(!mortgageFree ? [<Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty" />] : []),
@@ -428,7 +452,7 @@ function App() {
               // Create array of all purchase detail items
               const purchaseItems = [
                 <DollarInput key="purchasePrice" state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />,
-                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} />,
+                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} invalid={downPaymentError} errorText={downPaymentErrorText} />,
                 <TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />,
                 <NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />,
                 ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),

@@ -1,8 +1,8 @@
 import { Field, NumberInput } from "@chakra-ui/react"
 
-export default function NumInput({state, stateSetter, label, min=0, max=1000000, step=1000,  precision=0}) {
+export default function NumInput({state, stateSetter, label, min=0, max=1000000, step=1000, precision=0, errorText, invalid}) {
   return (
-    <Field.Root>
+    <Field.Root invalid={invalid}>
       <Field.Label whiteSpace="nowrap" fontSize={{ base: "sm", lg: "md" }}>{label}</Field.Label>
       <NumberInput.Root
         value={state.toString()}
@@ -26,6 +26,7 @@ export default function NumInput({state, stateSetter, label, min=0, max=1000000,
           <NumberInput.DecrementTrigger />
         </NumberInput.Control>
       </NumberInput.Root>
+      {errorText && <Field.ErrorText>{errorText}</Field.ErrorText>}
     </Field.Root>
   );
 }

@@ -1,9 +1,9 @@
 import { Field, NumberInput } from "@chakra-ui/react"
 import { formatCurrency } from "../helpers.js"
 
-export default function DollarInput({state, stateSetter, label, min=0, max=1000000, step=1000, precision=0}) {
+export default function DollarInput({state, stateSetter, label, min=0, max=1000000, step=1000, precision=0, errorText, invalid}) {
   return (
-    <Field.Root>
+    <Field.Root invalid={invalid}>
       <Field.Label whiteSpace="nowrap" fontSize={{ base: "sm", lg: "md" }}>
         {label}
       </Field.Label>
@@ -27,6 +27,7 @@ export default function DollarInput({state, stateSetter, label, min=0, max=10000
           <NumberInput.Input />
           <NumberInput.Control />
         </NumberInput.Root>
+        {errorText && <Field.ErrorText>{errorText}</Field.ErrorText>}
         </Field.Root>
   );
 }
