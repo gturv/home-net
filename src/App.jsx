@@ -55,6 +55,8 @@ function App() {
   const [mortgagePenaltyApplies, setMortgagePenaltyApplies] = useState(false);
   const [mortgagePenaltyAmount, setMortgagePenaltyAmount] = useState(0);
   const [mortgagePenaltyEntered, setMortgagePenaltyEntered] = useState(false);
+  const [mortgageFree, setMortgageFree] = useState(false);
+
   
   // Share functionality states
   const [shareButtonState, setShareButtonState] = useState('Share');
@@ -222,6 +224,7 @@ function App() {
       setMortgagePenaltyApplies(urlParams.get('mpa') === 'true');
       setMortgagePenaltyAmount(Number(urlParams.get('mpo')) || 0);
       setMortgagePenaltyEntered(urlParams.get('mpe') === 'true');
+      setMortgageFree(urlParams.get('mf') === 'true');
     }
   }, []);
 
@@ -237,22 +240,22 @@ function App() {
       portingMortgage, mortgageRateCurrent, mortgageRateNew, purchasePrice, downPayment, 
       homeInspection, renovations, movingCosts, condoFees, utilities, insuranceYearly, 
       rentalIncome, ammortizationYears, mortgagePenaltyApplies, mortgagePenaltyAmount, 
-      mortgagePenaltyEntered]); // Intentionally excluding shareButtonState
+      mortgagePenaltyEntered, mortgageFree]); // Intentionally excluding shareButtonState
 
   // Set down payment to net proceeds when mortgage remaining changes
   useEffect(() => {
-    if (mortgageRemaining > 0) {
+    if (mortgageRemaining > 0 || mortgageFree) {
       if (netProceeds > 0 && !portingMortgage) {
         setDownPayment(netProceeds);
         setDownPaymentInput(netProceeds);
       }
     }
-  }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput, mortgagePenaltyAmount, netProceeds]);
+  }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput, mortgagePenaltyAmount, netProceeds, mortgageFree]);
 
 
   // Intelligently set down payment when purchase price changes (after debounce)
   useEffect(() => {
-    if (purchasePrice > 0 && mortgageRemaining > 0) {
+    if (purchasePrice > 0 && (mortgageRemaining > 0 || mortgageFree)) {
 /*       const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
       const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount;
        */
@@ -268,7 +271,7 @@ function App() {
         }
       }
     }
-  }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining, mortgagePenaltyAmount, netProceeds]);
+  }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining, mortgagePenaltyAmount, netProceeds, mortgageFree]);
 
   
   const landTransferTax = calculateLandTransferTax(purchasePrice);
@@ -346,9 +349,10 @@ function App() {
                 <NumInput key="commissionRate" state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />,
                 <TextBox key="commissionHST" label="Commission w/ HST" value={formatCurrency(commissionWithHST)} />,
                 <DollarInput key="lawyerFeeSell" state={lawyerFeeSell} stateSetter={setLawyerFeeSell} label="Lawyer Fee (Sell)" step={100} />,
-                ...(!mortgagePenaltyApplies ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Port Mortgage" />] : []),
+                ...(!portingMortgage ? [<Check key="mortgageFree" state={mortgageFree} stateSetter={setMortgageFree} label="Mortgage Free" />] : []),
+                ...(!mortgagePenaltyApplies && !mortgageFree ? [<Check key="portingMortgage" state={portingMortgage} stateSetter={setPortingMortgage} label="Port Mortgage" />] : []),
                 ...(portingMortgage ? [<NumInput key="currentRate" state={mortgageRateCurrent} stateSetter={setMortgageRateCurrent} label="Current Rate (%)" min={0} max={10} step={0.1} precision={2} />] : []),
-                <Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty" />,
+                ...(!mortgageFree ? [<Check key="mortgagePenalty" state={mortgagePenaltyApplies} stateSetter={handleMortgagePenaltyChange} label="Mortgage Penalty" />] : []),
                 ...(mortgagePenaltyApplies && mortgagePenaltyEntered ? [<TextBox key="penaltyAmount" onClick={() => setPenaltyDialogOpen(true)} label="Mortgage Penalty" value={formatCurrency(mortgagePenaltyAmount)} />] : [])
               ];
 
@@ -410,7 +414,7 @@ function App() {
             fontFamily="inherit"
             textAlign="center"
           >
-            {salePrice > 99999 && mortgageRemaining > 0 ? formatCurrency(netProceeds) : 0}
+            {salePrice > 99999 && (mortgageRemaining > 0 || mortgageFree) ? formatCurrency(netProceeds) : 0}
           </Box>
         </Box>
       </VStack>
