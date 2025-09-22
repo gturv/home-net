@@ -494,8 +494,8 @@ function App() {
       {/* Monthly Costs Section */}
       <VStack align="flex-start" spacing={4} w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
-          <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "left" }} w="full">Monthly Costs</Text>
-          <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" >
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} mt={{ base: 3, lg: 0 }} textAlign={{ base: "center", lg: "right" }} w="full">Monthly Costs</Text>
+          <Flex  direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align={{ base: "flex-start", lg: "flex-end" }} justify={{ base: "space-between", lg: "flex-start" }} w="full" >
             {(() => {
               // Create array of all monthly cost items
               const monthlyItems = [
@@ -515,7 +515,7 @@ function App() {
 
               return (
                 <>
-                  <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4}>
+                  <VStack flex={{ base: "0 0 45%", lg: "0 0 auto" }} align="flex-start" spacing={4}>
                     {firstColumn.map((item, index) => (
                       <Box key={index} w="full">
                         {item}
@@ -531,7 +531,7 @@ function App() {
                     </Box>
                   </VStack>
                   {secondColumn.length > 0 && (
-                    <VStack flex={{ base: "0 0 45%", lg: 1 }} align="flex-start" spacing={4} display={{ base: "flex", lg: "none" }}>
+                    <VStack flex={{ base: "0 0 45%", lg: "0 0 auto" }} align="flex-start" spacing={4} display={{ base: "flex", lg: "none" }}>
                       {secondColumn.map((item, index) => (
                         <Box key={index} w="full">
                           {item}
