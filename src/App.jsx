@@ -436,11 +436,11 @@ function App() {
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Net Proceeds</Text>
           <Box
             border="1px solid"
-            borderColor="border.emphasized"
+            borderColor="border.default"
             borderRadius="md"
             px={3}
             py={2}
-            bg="bg.panel"
+            bg="bg.default"
             minH="10"
             width="200px"
             display="flex"
@@ -513,11 +513,11 @@ function App() {
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</Text>
           <Box
             border="1px solid"
-            borderColor="border.emphasized"
+            borderColor="border.default"
             borderRadius="md"
             px={3}
             py={2}
-            bg="bg.panel"
+            bg="bg.default"
             minH="10"
             width="200px"
             display="flex"
@@ -592,11 +592,11 @@ function App() {
           <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">Monthly Expense</Text>
           <Box
             border="1px solid"
-            borderColor="border.emphasized"
+            borderColor="border.default"
             borderRadius="md"
             px={3}
             py={2}
-            bg="bg.panel"
+            bg="bg.default"
             minH="10"
             width="200px"
             display="flex"
