@@ -57,6 +57,7 @@ function App() {
   const [mortgagePenaltyEntered, setMortgagePenaltyEntered] = useState(false);
   const [mortgageFree, setMortgageFree] = useState(false);
   const [firstTimeBuyer, setFirstTimeBuyer] = useState(false);
+  const [newBuild, setNewBuild] = useState(false);
 
   
   // Share functionality states
@@ -308,6 +309,32 @@ function App() {
       return purchasePrice * 0.20; // 20% for $1.5M+
     }
   };
+// ensure the amortization is valid based on canadian rules
+// if the down payment is less than 20% the max ammortization is 25 years, unless it's a new build or a first time buyer
+// anything over 1.5M requires 20% down payment and max ammortization is 25 years
+// if the downpayment is over 20% the max ammortization is 30 years
+// this function will return a warning text letting the user know if the ammortization selected is invalid
+function getAmortizationWarning() {
+  // Only warn if they requested 30 years
+  if (ammortizationYears !== 30) return null;
+
+  const isHighRatio = downPaymentPercent < 20; // <20% down = insured
+  const isInsurable = purchasePrice <= 1500000; // gov’t max for insurance
+
+  if (isHighRatio) {
+    if (!isInsurable) {
+      return ""; // this is already handled by down payment error
+    }
+    if (!(firstTimeBuyer || newBuild)) {
+      return "Insured: Max 25 except FTB/New Build";
+    }
+  }
+
+  // Uninsured mortgages (≥20% down) are fine even above $1.5M
+  return null;
+}
+
+  const amortizationWarning = getAmortizationWarning();
 
   const minimumDownPayment = calculateMinimumDownPayment(purchasePrice);
   const downPaymentError = purchasePrice > 99999 && downPayment > 0 && downPayment < minimumDownPayment;
@@ -470,15 +497,18 @@ function App() {
                 ...(!(purchasePrice > 0 && purchasePrice <= downPayment && downPayment > 0) ? [<NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />] : []),
                 ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcPremium" label="CMHC Premium" value={formatCurrency(cmhcPremium)} />] : []),
-                ...(!(purchasePrice <= downPayment && downPayment > 0 && purchasePrice > 0) ? [<NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />] : []),
+                ...(!(purchasePrice <= downPayment && downPayment > 0 && purchasePrice > 0) ? [<NumInput key="amortization" state={ammortizationYears} stateSetter={setAmortizationYears} errorText={amortizationWarning} invalid={Boolean(amortizationWarning)} label="Amortization (Yrs)" min={1} max={30} step={5} precision={0} />] : []),
                 <TextBox key="landTransferTax" label="Land Transfer Tax" value={formatCurrency(landTransferTax)} />,
                 <DollarInput key="lawyerFeeBuy" state={lawyerFeeBuy} stateSetter={setLawyerFeeBuy} label="Lawyer Fee (Buy)" step={100} />,
                 <DollarInput key="renovations" state={renovations} stateSetter={setRenovations} label="Renovations" step={500} />,
                 <DollarInput key="movingCosts" state={movingCosts} stateSetter={setMovingCosts} label="Moving Costs" step={200} />,
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcTax" label="CMHC Tax (Closing)" value={formatCurrency(cmhcTaxDueOnClosing)} />] : []),
                 <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Inspection?" />,
-                ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="firstTimeBuyer" state={firstTimeBuyer} stateSetter={setFirstTimeBuyer} label="First Time Buyer?" />] : [])
+                ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="firstTimeBuyer" state={firstTimeBuyer} stateSetter={setFirstTimeBuyer} label="First Time Buyer?" />] : []),
+                ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="newBuild" state={newBuild} stateSetter={setNewBuild} label="New Build?" />] : [])
+
               ];
+              
 
               // Split items into two columns with max 6 items per column
               const maxItemsPerColumn = 5;
