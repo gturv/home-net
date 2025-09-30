@@ -77,7 +77,7 @@ function App() {
   const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
   const mortgageNew = purchasePrice - downPayment
   const downPaymentPercent = (downPayment / purchasePrice) * 100;
-  const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
+  const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment, ammortizationYears) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
 
   const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount
 

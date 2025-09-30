@@ -22,20 +22,31 @@ export function calculateLandTransferTax(purchasePrice, firstTimeBuyer = false) 
   return tax;
 }
 
-export function calculateCMHC(purchasePrice, downPayment) {
+export function calculateCMHC(purchasePrice, downPayment, amortizationYears) {
   const mortgage = purchasePrice - downPayment;
-  const ltv = mortgage / purchasePrice;
-
-  let rate = 0;
-  if (ltv > 0.90) {
-    rate = 0.04;
-  } else if (ltv > 0.85) {
-    rate = 0.031;
-  } else if (ltv > 0.80) {
-    rate = 0.028;
+  if (mortgage <= 0 || purchasePrice <= 0) {
+    return 0;
   }
 
-  const cmhcPremium = mortgage * rate;
+  // Calculate loan-to-value ratio
+  const loanToValueRatio = (mortgage / purchasePrice) * 100;
+
+  // CMHC insurance is not required if LTV is 80% or less
+  if (loanToValueRatio <= 80) {
+    return 0;
+  }
+
+  // CMHC premium rates based on loan-to-value ratio (as of 2024)
+  let cmhcRate = 0;
+
+  if (loanToValueRatio <= 85) {
+    cmhcRate = amortizationYears <= 25 ? 0.028 : 0.030; // 2.80% or 3%
+  } else if (loanToValueRatio <= 90) {
+    cmhcRate = amortizationYears <= 25 ? 0.031 : 0.033; // 3.10% or 3.30%
+  } else if (loanToValueRatio <= 95) {
+    cmhcRate = amortizationYears <= 25 ? 0.04 : 0.042; // 4.00% or 4.20%
+  }
+  const cmhcPremium = mortgage * cmhcRate;
   const cmhcTaxDueOnClosing = cmhcPremium * 0.08; // 8% Ontario PST
   const newMortgage = mortgage + cmhcPremium;
 
