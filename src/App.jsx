@@ -505,7 +505,7 @@ function getAmortizationWarning() {
                 ...(downPaymentPercent < 20 && downPaymentPercent > 0 && purchasePrice > 99999 ? [<TextBox key="cmhcTax" label="CMHC Tax (Closing)" value={formatCurrency(cmhcTaxDueOnClosing)} />] : []),
                 <Check key="homeInspection" state={homeInspection} stateSetter={setHomeInspection} label="Inspection?" />,
                 ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="firstTimeBuyer" state={firstTimeBuyer} stateSetter={setFirstTimeBuyer} label="First Time Buyer?" />] : []),
-                ...(purchasePrice > 99999 && salePrice === 0 ? [<Check key="newBuild" state={newBuild} stateSetter={setNewBuild} label="New Build?" />] : [])
+                ...(purchasePrice > 99999 ? [<Check key="newBuild" state={newBuild} stateSetter={setNewBuild} label="New Build?" />] : [])
 
               ];
               
