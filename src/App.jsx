@@ -408,7 +408,7 @@ function getAmortizationWarning() {
             {(() => {
               // Create array of all sale detail items
               const saleItems = [
-                <DollarInput key="salePrice" state={salePrice} stateSetter={setSalePrice} label="Sale Price" step={5000} />,
+                <DollarInput key="salePrice" state={salePrice} stateSetter={setSalePrice} label="Sale Price" max={10000000} step={5000} />,
                 <DollarInput key="mortgageRemaining" state={mortgageRemainingInput} stateSetter={handleMortgageRemainingChange} label="Mortgage Remaining" step={1000} invalid={(mortgageRemainingInput === 0 && portingMortgage) || (mortgageRemainingInput === 0 && mortgagePenaltyApplies)} errorText={"Enter mortgage amount"} />,
                 <NumInput key="commissionRate" state={commissionRate} stateSetter={setCommissionRate} label="Commission Rate (%)" min={0} max={6} step={0.25} precision={2} />,
                 <TextBox key="commissionHST" label="Commission w/ HST" value={formatCurrency(commissionWithHST)} />,
