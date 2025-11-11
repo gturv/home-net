@@ -8,7 +8,7 @@ export default function TextBox({label, value, bold = false, onClick = null}) {
       </Field.Label>
       <Box
         border="1px solid"
-        borderColor="border.default"
+        borderColor="gray.300"
         borderRadius="md"
         px={3}
         py={2}

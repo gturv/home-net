@@ -28,6 +28,8 @@ const useDebounce = (callback, delay) => {
   return debouncedCallback;
 };
 
+const valuesAreClose = (a, b, tolerance = 1) => Math.abs(a - b) < tolerance;
+
 function App() {
   const [salePrice, setSalePrice] = useState(0);
   const [commissionRate, setCommissionRate] = useState(5);
@@ -44,6 +46,9 @@ function App() {
   const [purchasePriceInput, setPurchasePriceInput] = useState(0); // For input display
   const [downPayment, setDownPayment] = useState(0);
   const [downPaymentInput, setDownPaymentInput] = useState(0); // For input display
+  const [downPaymentSynced, setDownPaymentSynced] = useState(true); // Tracks if DP should follow net proceeds
+  const [purchasePriceTouched, setPurchasePriceTouched] = useState(false);
+  const [autoDownPaymentApplied, setAutoDownPaymentApplied] = useState(false);
   const [homeInspection, setHomeInspection] = useState(true);
   const [renovations, setRenovations] = useState(0);
   const [movingCosts, setMovingCosts] = useState(0);
@@ -80,6 +85,7 @@ function App() {
   const { cmhcPremium, cmhcTaxDueOnClosing, newMortgage } = (downPaymentPercent < 20 && downPaymentPercent > 0) ? calculateCMHC(purchasePrice, downPayment, ammortizationYears) : { cmhcPremium: 0, cmhcTaxDueOnClosing: 0, newMortgage: mortgageNew };
 
   const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount
+  const landTransferTax = calculateLandTransferTax(purchasePrice, firstTimeBuyer);
 
 
   // Create debounced setters
@@ -95,12 +101,16 @@ function App() {
 
   const handlePurchasePriceChange = (value) => {
     setPurchasePriceInput(value);
+    if (!purchasePriceTouched) {
+      setPurchasePriceTouched(true);
+    }
     debouncedSetPurchasePrice(value);
   };
 
   // Debounced handler for down payment to avoid showing errors while typing
   const handleDownPaymentChange = (value) => {
     setDownPaymentInput(value);
+    setDownPaymentSynced(false);
     debouncedSetDownPayment(value);
   };
 
@@ -203,33 +213,71 @@ function App() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     
-    if (urlParams.has('sp')) {
-      setSalePrice(Number(urlParams.get('sp')) || 0);
-      setCommissionRate(Number(urlParams.get('cr')) || 5);
-      setLawyerFeeBuy(Number(urlParams.get('lb')) || 2000);
-      setLawyerFeeSell(Number(urlParams.get('ls')) || 1500);
-      setMortgageRemaining(Number(urlParams.get('mr')) || 0);
-      setMortgageRemainingInput(Number(urlParams.get('mr')) || 0);
-      setPropertyTax(Number(urlParams.get('pt')) || 5000);
-      setPortingMortgage(urlParams.get('pm') === 'true');
-      setMortgageRateCurrent(Number(urlParams.get('mrc')) || 4);
-      setMortgageRateNew(Number(urlParams.get('mrn')) || 4);
-      setPurchasePrice(Number(urlParams.get('pp')) || 0);
-      setPurchasePriceInput(Number(urlParams.get('pp')) || 0);
-      setDownPayment(Number(urlParams.get('dp')) || 0);
-      setDownPaymentInput(Number(urlParams.get('dp')) || 0);
-      setHomeInspection(urlParams.get('hi') === 'true');
-      setRenovations(Number(urlParams.get('rn')) || 0);
-      setMovingCosts(Number(urlParams.get('mc')) || 0);
-      setCondoFees(Number(urlParams.get('cf')) || 0);
-      setUtilities(Number(urlParams.get('ut')) || 250);
-      setInsuranceYearly(Number(urlParams.get('iy')) || 1500);
-      setRentalIncome(Number(urlParams.get('ri')) || 0);
-      setAmortizationYears(Number(urlParams.get('ay')) || 25);
-      setMortgagePenaltyApplies(urlParams.get('mpa') === 'true');
-      setMortgagePenaltyAmount(Number(urlParams.get('mpo')) || 0);
-      setMortgagePenaltyEntered(urlParams.get('mpe') === 'true');
-      setMortgageFree(urlParams.get('mf') === 'true');
+    if (!urlParams.has('sp')) return;
+
+    const getNumber = (key, fallback) => {
+      const value = urlParams.get(key);
+      if (value === null) return fallback;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    };
+
+    const salePriceParam = getNumber('sp', 0);
+    const commissionRateParam = getNumber('cr', 5);
+    const lawyerFeeBuyParam = getNumber('lb', 2000);
+    const lawyerFeeSellParam = getNumber('ls', 1500);
+    const mortgageRemainingParam = getNumber('mr', 0);
+    const propertyTaxParam = getNumber('pt', 5000);
+    const mortgageRateCurrentParam = getNumber('mrc', 4);
+    const mortgageRateNewParam = getNumber('mrn', 4);
+    const purchasePriceParam = getNumber('pp', 0);
+    const downPaymentParam = getNumber('dp', 0);
+    const homeInspectionParam = urlParams.get('hi') === 'true';
+    const renovationsParam = getNumber('rn', 0);
+    const movingCostsParam = getNumber('mc', 0);
+    const condoFeesParam = getNumber('cf', 0);
+    const utilitiesParam = getNumber('ut', 250);
+    const insuranceYearlyParam = getNumber('iy', 1500);
+    const rentalIncomeParam = getNumber('ri', 0);
+    const amortizationYearsParam = getNumber('ay', 25);
+    const mortgagePenaltyAppliesParam = urlParams.get('mpa') === 'true';
+    const mortgagePenaltyAmountParam = getNumber('mpo', 0);
+    const mortgagePenaltyEnteredParam = urlParams.get('mpe') === 'true';
+    const mortgageFreeParam = urlParams.get('mf') === 'true';
+    const portingMortgageParam = urlParams.get('pm') === 'true';
+
+    setSalePrice(salePriceParam);
+    setCommissionRate(commissionRateParam);
+    setLawyerFeeBuy(lawyerFeeBuyParam);
+    setLawyerFeeSell(lawyerFeeSellParam);
+    setMortgageRemaining(mortgageRemainingParam);
+    setMortgageRemainingInput(mortgageRemainingParam);
+    setPropertyTax(propertyTaxParam);
+    setPortingMortgage(portingMortgageParam);
+    setMortgageRateCurrent(mortgageRateCurrentParam);
+    setMortgageRateNew(mortgageRateNewParam);
+    setPurchasePrice(purchasePriceParam);
+    setPurchasePriceInput(purchasePriceParam);
+    setDownPayment(downPaymentParam);
+    setDownPaymentInput(downPaymentParam);
+    setHomeInspection(homeInspectionParam);
+    setRenovations(renovationsParam);
+    setMovingCosts(movingCostsParam);
+    setCondoFees(condoFeesParam);
+    setUtilities(utilitiesParam);
+    setInsuranceYearly(insuranceYearlyParam);
+    setRentalIncome(rentalIncomeParam);
+    setAmortizationYears(amortizationYearsParam);
+    setMortgagePenaltyApplies(mortgagePenaltyAppliesParam);
+    setMortgagePenaltyAmount(mortgagePenaltyAmountParam);
+    setMortgagePenaltyEntered(mortgagePenaltyEnteredParam);
+    setMortgageFree(mortgageFreeParam);
+
+    if (urlParams.has('dp')) {
+      const commissionWithHSTParam = (salePriceParam * (commissionRateParam / 100)) * 1.13;
+      const netProceedsFromParams = salePriceParam - commissionWithHSTParam - lawyerFeeSellParam - mortgageRemainingParam - mortgagePenaltyAmountParam;
+      const downPaymentMatchesNet = valuesAreClose(downPaymentParam, netProceedsFromParams);
+      setDownPaymentSynced(downPaymentMatchesNet);
     }
   }, []);
 
@@ -257,36 +305,43 @@ function App() {
       rentalIncome, ammortizationYears, mortgagePenaltyApplies, mortgagePenaltyAmount, 
       mortgagePenaltyEntered, mortgageFree]); // Intentionally excluding shareButtonState
 
-  // Set down payment to net proceeds when mortgage remaining changes
   useEffect(() => {
-    if (mortgageRemaining > 0 || mortgageFree) {
-      if (netProceeds > 0 && !portingMortgage) {
-        setDownPayment(netProceeds);
-        setDownPaymentInput(netProceeds);
-      }
-    }
-  }, [mortgageRemaining, salePrice, commissionRate, lawyerFeeSell, portingMortgage, mortgageRemainingInput, mortgagePenaltyAmount, netProceeds, mortgageFree]);
+    if (!purchasePriceTouched) return;
+    if (autoDownPaymentApplied) return;
+    if (!downPaymentSynced) return;
+    if (purchasePrice <= 99999) return;
+    if (!(mortgageRemaining > 0 || mortgageFree)) return;
+    if (portingMortgage) return;
+    if (netProceeds <= 0) return;
 
+    const inspectionCost = homeInspection ? 565 : 0;
+    const suggestedDownPayment = netProceeds - landTransferTax - lawyerFeeBuy - inspectionCost - cmhcTaxDueOnClosing;
+    if (suggestedDownPayment <= 0) return;
+    const finalDownPayment = Math.min(purchasePrice, suggestedDownPayment);
 
-  // Intelligently set down payment when purchase price changes (after debounce)
+    setDownPayment(finalDownPayment);
+    setDownPaymentInput(finalDownPayment);
+    setAutoDownPaymentApplied(true);
+  }, [
+    purchasePriceTouched,
+    autoDownPaymentApplied,
+    downPaymentSynced,
+    purchasePrice,
+    mortgageRemaining,
+    mortgageFree,
+    portingMortgage,
+    netProceeds,
+    landTransferTax,
+    lawyerFeeBuy,
+    homeInspection,
+    cmhcTaxDueOnClosing
+  ]);
+
   useEffect(() => {
-    if (purchasePrice > 0 && (mortgageRemaining > 0 || mortgageFree)) {
-/*       const commissionWithHST = (salePrice * (commissionRate / 100)) * 1.13;
-      const netProceeds = salePrice - commissionWithHST - lawyerFeeSell - mortgageRemaining - mortgagePenaltyAmount;
-       */
-      if (netProceeds > 0) {
-        // If net proceeds exceed purchase price, set down payment to purchase price (100% down)
-        if (netProceeds >= purchasePrice && purchasePrice > 0) {
-          setDownPayment(purchasePrice);
-          setDownPaymentInput(purchasePrice);
-        } else {
-          // Otherwise set to net proceeds
-          setDownPayment(netProceeds);
-          setDownPaymentInput(netProceeds);
-        }
-      }
+    if (!downPaymentSynced && valuesAreClose(downPayment, netProceeds)) {
+      setDownPaymentSynced(true);
     }
-  }, [purchasePrice, salePrice, commissionRate, lawyerFeeSell, mortgageRemaining, mortgagePenaltyAmount, netProceeds, mortgageFree]);
+  }, [downPayment, netProceeds, downPaymentSynced]);
 
   // Remove mortgagePenaltyAmount if mortgageRemaining is zero
   useEffect(() => {
@@ -297,7 +352,6 @@ function App() {
     }
   }, [mortgageRemaining, mortgageFree]);
   
-  const landTransferTax = calculateLandTransferTax(purchasePrice, firstTimeBuyer);
   
   // Calculate minimum down payment based on Canadian requirements
   const calculateMinimumDownPayment = (purchasePrice) => {
@@ -341,14 +395,14 @@ function getAmortizationWarning() {
   const downPaymentErrorText = downPaymentError ? `Minimum down payment: ${formatCurrency(minimumDownPayment)}` : "";
   
   // Calculate base cash needed for purchase
-  const baseCashNeeded = purchasePrice - netProceeds - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0);
+  const baseCashNeeded = purchasePrice - netProceeds - mortgageNew + landTransferTax + lawyerFeeBuy + cmhcTaxDueOnClosing + renovations + mortgagePenaltyAmount + (homeInspection ? 565 : 0) + movingCosts;
   
   // If down payment equals purchase price (100% down), there might be excess proceeds
-  const excessProceeds = (downPayment >= purchasePrice && netProceeds > purchasePrice) ? netProceeds - purchasePrice : 0;
+  //const excessProceeds = (downPayment >= purchasePrice && netProceeds > purchasePrice) ? netProceeds - purchasePrice : 0;
   
   // Final cash needed accounting for excess proceeds
-  const cashNeeded = baseCashNeeded - excessProceeds; 
-  
+  //const cashNeeded = baseCashNeeded - excessProceeds; 
+  const cashNeeded = baseCashNeeded //excessProceeds > 0 ? -baseCashNeeded : baseCashNeeded;
   // When porting a mortgage, the additional mortgage needed is the total new mortgage minus what's being ported
   const additionalMortgageNeeded = portingMortgage ? Math.max(0, newMortgage - mortgageRemaining) : newMortgage;
   const blendedRate = portingMortgage ? calculateBlendRate(mortgageRemaining, mortgageRateCurrent, additionalMortgageNeeded, mortgageRateNew) : mortgageRateNew;
@@ -492,7 +546,7 @@ function getAmortizationWarning() {
               // Create array of all purchase detail items
               const purchaseItems = [
                 <DollarInput key="purchasePrice" state={purchasePriceInput} stateSetter={handlePurchasePriceChange} label="Purchase Price" step={5000} max={10000000} />,
-                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={10000000} invalid={downPaymentError} errorText={downPaymentErrorText} />,
+                <DollarInput key="downPayment" state={downPaymentInput} stateSetter={handleDownPaymentChange} label={`Down Payment ${downPayment > 0 && purchasePrice > 99999 ? '[' +downPaymentPercent.toFixed(1) + "%]" : ""}`} step={10000} max={purchasePrice} invalid={downPaymentError} errorText={downPaymentErrorText} />,
                 ...(!(purchasePrice > 0 && purchasePrice <= downPayment && downPayment > 0) ? [<TextBox key="newMortgage" label={portingMortgage ? "Additional Mortgage" : "New Mortgage"} value={purchasePrice < 99999 ? 0 : (portingMortgage ? formatCurrency(newMortgage - mortgageRemainingInput) : formatCurrency(newMortgage))} />] : []),
                 ...(!(purchasePrice > 0 && purchasePrice <= downPayment && downPayment > 0) ? [<NumInput key="mortgageRate" state={mortgageRateNew} stateSetter={setMortgageRateNew} label={portingMortgage ? "New Mortgage Rate (%)" : "Mortgage Rate (%)"} min={0} max={10} step={0.1} precision={2} />] : []),
                 ...(portingMortgage ? [<TextBox key="blendedRate" label="Blended Rate (%)" value={blendedRate.toFixed(2) + "%"} />] : []),
@@ -540,7 +594,7 @@ function getAmortizationWarning() {
         
         {/* Cash Needed - Full width on mobile */}
         <Box w="full" display="flex" flexDirection="column" alignItems="center">
-          <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">{cashNeeded < 0 ? "Equity Pulled" : "Cash Needed"}</Text>
+          <Text fontSize="lg" fontWeight="bold" mb={2} textAlign="center">{cashNeeded < 0 ? "Cash Left Over" : "Cash Owing"}</Text>
           <Box
             border="1px solid"
             borderColor="border.default"
