@@ -413,36 +413,24 @@ function getAmortizationWarning() {
     ammortizationYears
   );
 
+  const logoProps = {
+    src: "/GW-small.png",
+    alt: "GoWylde Logo",
+    height: { base: "40px", lg: "48px" },
+    objectFit: "contain",
+    border: "0",
+    pointerEvents: "none"
+  };
+
   // Calculate section heights for desktop alignment
   return (
   <Box  >
     {/* Desktop Header with Share Button */}
     <Flex align="center" justify="space-between" mb={{base: 0, lg: 6}} display={{ base: "none", lg: "flex" }} w="full" gap={4}>
-      <Image 
-        src="/GW-small.png" 
-        alt="GoWylde Logo" 
-        height="48px" 
-        objectFit="contain"
-        border="0"
-        pointerEvents="none"
-      />
+      <Image {...logoProps} />
       <Flex flex="1" justify="center">
         <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
       </Flex>
-      <Button 
-        onClick={handleShare}
-        disabled={shareButtonDisabled}
-        variant="ghost"
-        fontSize="1rem"
-        color={shareButtonDisabled ? "gray.400" : "gray.600"}
-        cursor={shareButtonDisabled ? 'default' : 'pointer'}
-      >
-        {shareButtonState}
-      </Button>
-    </Flex>
-    
-    {/* Mobile-only Share Button */}
-    <Flex justify="flex-end" mb={0} display={{ base: "flex", lg: "none" }}>
       <Button 
         onClick={handleShare}
         disabled={shareButtonDisabled}
@@ -465,7 +453,21 @@ function getAmortizationWarning() {
       {/* Sale Details Section */}
       <VStack align="flex-start" w="full" h="full" justify={{ base: "flex-start", lg: "space-between" }} position="relative">
         <Box w="full">
-          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full">Sale Details</Text>
+          <Flex align="center" justify="space-between" mb={4} gap={3} display={{ base: "flex", lg: "none" }}>
+            <Image {...logoProps} />
+            <Text fontSize="1.5rem" fontWeight="bold" flex="1" textAlign="center">Sale Details</Text>
+            <Button 
+              onClick={handleShare}
+              disabled={shareButtonDisabled}
+              variant="ghost"
+              fontSize="1rem"
+              color={shareButtonDisabled ? "gray.400" : "gray.600"}
+              cursor={shareButtonDisabled ? 'default' : 'pointer'}
+            >
+              {shareButtonState}
+            </Button>
+          </Flex>
+          <Text fontSize="1.5rem" fontWeight="bold" mb={4} textAlign={{ base: "center", lg: "left" }} w="full" display={{ base: "none", lg: "block" }}>Sale Details</Text>
           <Flex direction={{ base: "row", lg: "column" }} gap={4} wrap={{ base: "wrap", lg: "nowrap" }} align="flex-start" justify={{ base: "space-between", lg: "flex-start" }} w="full" >
             {(() => {
               // Create array of all sale detail items
