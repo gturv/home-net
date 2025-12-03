@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, } from 'react';
 import './App.css';
-import { Text, Dialog, Button, VStack, HStack, Flex, Box } from '@chakra-ui/react'
+import { Text, Dialog, Button, VStack, HStack, Flex, Box, Image } from '@chakra-ui/react'
 import { calculateLandTransferTax, calculateCMHC, formatCurrency, calculateMortgagePayment, calculateBlendRate, calculateThreeMonthsInterest, calculateMortgagePenaltyIRD } from './helpers';
 import DollarInput from './components/DollarInput.jsx';
 import NumInput from './components/NumInput.jsx';
@@ -417,16 +417,24 @@ function getAmortizationWarning() {
   return (
   <Box  >
     {/* Desktop Header with Share Button */}
-    <Flex align="center" justify="center" position="relative" mb={{base: 0, lg: 6}} display={{ base: "none", lg: "flex" }}>
-      <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
+    <Flex align="center" justify="space-between" mb={{base: 0, lg: 6}} display={{ base: "none", lg: "flex" }} w="full" gap={4}>
+      <Image 
+        src="/GW-small.png" 
+        alt="GoWylde Logo" 
+        height="48px" 
+        objectFit="contain"
+        border="0"
+        pointerEvents="none"
+      />
+      <Flex flex="1" justify="center">
+        <Text fontSize="2.5rem" fontWeight="bold" textAlign="center">Home Purchase/Sale Calculator</Text>
+      </Flex>
       <Button 
         onClick={handleShare}
         disabled={shareButtonDisabled}
         variant="ghost"
         fontSize="1rem"
         color={shareButtonDisabled ? "gray.400" : "gray.600"}
-        position="absolute"
-        right={0}
         cursor={shareButtonDisabled ? 'default' : 'pointer'}
       >
         {shareButtonState}
